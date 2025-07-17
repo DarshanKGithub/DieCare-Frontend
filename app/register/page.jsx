@@ -1,21 +1,39 @@
 'use client';
+
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
 import Link from 'next/link';
 
 export default function RegisterPage() {
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors }, reset } = useForm();
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const onSubmit = async (data) => {
     setLoading(true);
     try {
       const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/register`, data);
-      alert('✅ Registered Successfully');
+      await Swal.fire({
+        icon: 'success',
+        title: 'Registered Successfully',
+        text: 'You have been registered successfully! Redirecting to login...',
+        confirmButtonColor: '#1e40af', // Matches blue-700
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      reset(); // Clear form fields
+      router.push('/'); // Navigate to login page
       console.log(response.data);
     } catch (error) {
-      alert('❌ Registration Failed: ' + (error.response?.data?.error || 'Unknown error'));
+      await Swal.fire({
+        icon: 'error',
+        title: 'Registration Failed',
+        text: error.response?.data?.error || 'An unknown error occurred',
+        confirmButtonColor: '#1e40af', // Matches blue-700
+      });
     } finally {
       setLoading(false);
     }
@@ -89,7 +107,8 @@ export default function RegisterPage() {
             <div className="flex flex-col space-y-2">
               <select
                 {...register('role', { required: 'Role is required' })}
-                className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
+                className="w-full p-4 border border-gray-300 rounded-lg focus:ring- Tyson
+                focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
               >
                 <option value="">Select Role</option>
                 <option value="employee">Employee</option>

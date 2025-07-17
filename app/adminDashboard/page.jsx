@@ -1,40 +1,94 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import UserTable from '../UserTable'; // Assuming UserTable is in the same directory or a components folder
-import UserModal from '../UserModel'; // Assuming UserModal is in the same directory or a components folder
-import { FaSpinner } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
+import UserTable from '../UserTable';
+import UserModal from '../UserModel';
+import { FaSpinner, FaSignOutAlt } from 'react-icons/fa';
 
 export default function AdminDashboard() {
   const [hodUsers, setHodUsers] = useState([]);
   const [employeeUsers, setEmployeeUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null); // For editing
-  const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
-  const [userRole, setUserRole] = useState('hod'); // 'hod' or 'employee'
+  const [currentUser, setCurrentUser] = useState(null);
+  const [modalMode, setModalMode] = useState('add');
+  const [userRole, setUserRole] = useState('hod');
 
-  // Fetch user data
+  // Fetch user data from backend
   useEffect(() => {
-    // Simulate API call
-    setLoading(true);
-    setTimeout(() => {
-      // Placeholder data
-      setHodUsers([
-        { id: 1, name: 'John Doe', email: 'john.doe@diecare.com', department: 'Mechanical' },
-        { id: 2, name: 'Jane Smith', email: 'jane.smith@diecare.com', department: 'Production' },
-      ]);
-      setEmployeeUsers([
-        { id: 3, name: 'Mike Ross', email: 'mike.ross@diecare.com', department: 'Assembly' },
-        { id: 4, name: 'Sarah Lee', email: 'sarah.lee@diecare.com', department: 'Quality' },
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/');
+      return;
+    }
+
+    const fetchUsers = async (role, setUsers) => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users?role=${role}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${role} users`);
+        }
+        const data = await response.json();
+        setUsers(data);
+      } catch (error) {
+        console.error(`[FETCH ${role.toUpperCase()} ERROR] ${error.message}`);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: `Error fetching ${role} users: ${error.message}`,
+          confirmButtonColor: '#1e40af', // Matches blue-800
+        });
+      }
+    };
+
+    const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchUsers('hod', setHodUsers),
+        fetchUsers('employee', setEmployeeUsers),
       ]);
       setLoading(false);
-    }, 1500); // Simulate 1.5 second loading time
-  }, []);
+    };
 
-  // --- Modal Handlers ---
+    fetchData();
+  }, [router]);
+
+  // Logout Handler with SweetAlert2 Confirmation
+  const handleLogout = () => {
+    Swal.fire({
+      title: 'Are you sure you want to logout?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#1e40af', // Matches blue-800
+      cancelButtonColor: '#6b7280', // Matches gray-500
+      confirmButtonText: 'Yes',
+      cancelButtonText: 'No',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.removeItem('token');
+        router.push('/');
+        Swal.fire({
+          icon: 'success',
+          title: 'Logged Out',
+          text: 'You have been logged out successfully!',
+          confirmButtonColor: '#1e40af',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+    });
+  };
+
+  // Modal Handlers
   const handleOpenModal = (mode, role, user = null) => {
     setModalMode(mode);
     setUserRole(role);
@@ -47,42 +101,134 @@ export default function AdminDashboard() {
     setCurrentUser(null);
   };
 
-  // --- CRUD Handlers ---
-  const handleSaveUser = (userData) => {
-    const targetStateSetter = userRole === 'hod' ? setHodUsers : setEmployeeUsers;
+  // CRUD Handlers
+  const handleSaveUser = async (userData) => {
+    const token = localStorage.getItem('token');
+    const url = modalMode === 'add' ? `${process.env.NEXT_PUBLIC_API_URL}/register` : `${process.env.NEXT_PUBLIC_API_URL}/users/${userData.id}`;
+    const method = modalMode === 'add' ? 'POST' : 'PUT';
 
-    if (modalMode === 'add') {
-      // Add new user with a temporary ID
-      targetStateSetter(prev => [...prev, { ...userData, id: Date.now() }]);
-    } else {
-      // Update existing user
-      targetStateSetter(prev => prev.map(u => u.id === userData.id ? userData : u));
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${modalMode} user`);
+      }
+
+      const updatedUser = await response.json();
+      const targetStateSetter = userRole === 'hod' ? setHodUsers : setEmployeeUsers;
+
+      if (modalMode === 'add') {
+        targetStateSetter((prev) => [...prev, updatedUser.user]);
+      } else {
+        targetStateSetter((prev) => prev.map((u) => (u.id === updatedUser.user.id ? updatedUser.user : u)));
+      }
+
+      handleCloseModal();
+      Swal.fire({
+        icon: 'success',
+        title: `User ${modalMode === 'add' ? 'Added' : 'Updated'}`,
+        text: `User ${modalMode === 'add' ? 'added' : 'updated'} successfully!`,
+        confirmButtonColor: '#1e40af',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      console.error(`[${modalMode.toUpperCase()} USER ERROR] ${error.message}`);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: `Error ${modalMode === 'add' ? 'adding' : 'updating'} user: ${error.message}`,
+        confirmButtonColor: '#1e40af',
+      });
     }
-    handleCloseModal();
   };
 
-  const handleDeleteUser = (userId, role) => {
-    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+  const handleDeleteUser = async (userId, role) => {
+    const result = await Swal.fire({
+      title: 'Are you sure you want to delete this user?',
+      text: 'This action cannot be undone.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#1e40af',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes',
+      cancelButtonText: 'No',
+    });
+
+    if (result.isConfirmed) {
+      const token = localStorage.getItem('token');
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete user');
+        }
+
         const targetStateSetter = role === 'hod' ? setHodUsers : setEmployeeUsers;
-        targetStateSetter(prev => prev.filter(user => user.id !== userId));
+        targetStateSetter((prev) => prev.filter((user) => user.id !== userId));
+        Swal.fire({
+          icon: 'success',
+          title: 'User Deleted',
+          text: 'User deleted successfully!',
+          confirmButtonColor: '#1e40af',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        console.error(`[DELETE USER ERROR] ${error.message}`);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: `Error deleting user: ${error.message}`,
+          confirmButtonColor: '#1e40af',
+        });
+      }
     }
   };
-
 
   return (
-    <>
-      <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
-        <div className="bg-white rounded-xl shadow-lg p-6 max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-8 border-b border-gray-200 pb-4">
-            <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-            {loading && <FaSpinner className="animate-spin text-2xl text-blue-600" />}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700">
+      {/* Header */}
+      <header className="bg-black text-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 py-5 sm:px-6 lg:px-8 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl font-bold tracking-tight">DieCare</span>
+            <span className="text-lg font-medium text-blue-200">Admin Portal</span>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-5 py-2 bg-blue-800 rounded-lg hover:bg-blue-900 hover:shadow-xl transition duration-300 transform hover:scale-105"
+          >
+            <FaSignOutAlt className="text-lg" />
+            <span className="font-semibold">Logout</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-medium text-gray-900">Admin Dashboard</h2>
+            {loading && <FaSpinner className="animate-spin text-xl text-blue-600" />}
           </div>
 
           {loading ? (
-            <div className="text-center py-12 text-gray-500">Loading user data...</div>
+            <div className="text-center py-10 text-gray-500">Loading user data...</div>
           ) : (
-            <div className="space-y-12">
-              {/* HOD Users Section */}
+            <div className="space-y-8">
               <UserTable
                 title="HOD Users"
                 users={hodUsers}
@@ -90,8 +236,6 @@ export default function AdminDashboard() {
                 onEdit={(user) => handleOpenModal('edit', 'hod', user)}
                 onDelete={(userId) => handleDeleteUser(userId, 'hod')}
               />
-
-              {/* Employee Users Section */}
               <UserTable
                 title="Employee Users"
                 users={employeeUsers}
@@ -102,7 +246,12 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
-      </div>
+
+        {/* Footer */}
+        <footer className="mt-8 text-center text-sm text-gray-400">
+          © 2025 DieCare Engineering IT Department. All rights reserved.
+        </footer>
+      </main>
 
       {isModalOpen && (
         <UserModal
@@ -114,6 +263,6 @@ export default function AdminDashboard() {
           role={userRole}
         />
       )}
-    </>
+    </div>
   );
 }

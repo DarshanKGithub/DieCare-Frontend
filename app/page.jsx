@@ -1,8 +1,10 @@
 'use client';
+
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -32,6 +34,15 @@ export default function LoginPage() {
       const decodedToken = JSON.parse(atob(token.split('.')[1]));
       const role = decodedToken.role;
 
+      await Swal.fire({
+        icon: 'success',
+        title: 'Login Successful',
+        text: 'You have logged in successfully! Redirecting...',
+        confirmButtonColor: '#1e40af', // Matches blue-700
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
       if (role === 'admin') {
         router.push('/adminDashboard');
       } else if (role === 'hod') {
@@ -41,10 +52,13 @@ export default function LoginPage() {
       } else {
         throw new Error('Unknown role');
       }
-
-      alert('✅ Login Successful');
     } catch (error) {
-      alert('❌ Login Failed: ' + (error.response?.data?.message || 'Unknown error'));
+      await Swal.fire({
+        icon: 'error',
+        title: 'Login Failed',
+        text: error.response?.data?.message || 'An unknown error occurred',
+        confirmButtonColor: '#1e40af', // Matches blue-700
+      });
     } finally {
       setLoading(false);
     }
