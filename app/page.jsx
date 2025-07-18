@@ -114,9 +114,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <Link href="/register" className="block text-center text-blue-700 font-medium text-base mt-4 hover:underline">
+          {/* <Link href="/register" className="block text-center text-blue-700 font-medium text-base mt-4 hover:underline">
             Not Registered? Sign Up
-          </Link>
+          </Link> */}
 
           <p className="text-center text-sm text-gray-600 mt-6">
             © 2025 DieCare Engineering IT Department. All rights reserved.
