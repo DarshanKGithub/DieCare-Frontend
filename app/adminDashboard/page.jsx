@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Swal from 'sweetalert2';
 import UserTable from '../UserTable';
 import UserModal from '../UserModel';
@@ -12,6 +12,7 @@ export default function AdminDashboard() {
   const [employeeUsers, setEmployeeUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,14 +20,31 @@ export default function AdminDashboard() {
   const [modalMode, setModalMode] = useState('add');
   const [userRole, setUserRole] = useState('hod');
 
-  // Fetch user data from backend
+  // Prevent navigation to login page if authenticated
   useEffect(() => {
     const token = localStorage.getItem('token');
+    
+    // Check if user is trying to navigate to login page
+    if (token && pathname === '/') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Access Denied',
+        text: 'You must logout before accessing the login page.',
+        confirmButtonColor: '#1e40af',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      router.push('/dashboard'); // Redirect back to dashboard
+      return;
+    }
+
+    // If no token, redirect to login
     if (!token) {
       router.push('/');
       return;
     }
 
+    // Fetch user data
     const fetchUsers = async (role, setUsers) => {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users?role=${role}`, {
@@ -45,7 +63,7 @@ export default function AdminDashboard() {
           icon: 'error',
           title: 'Error',
           text: `Error fetching ${role} users: ${error.message}`,
-          confirmButtonColor: '#1e40af', // Matches blue-800
+          confirmButtonColor: '#1e40af',
         });
       }
     };
@@ -60,7 +78,7 @@ export default function AdminDashboard() {
     };
 
     fetchData();
-  }, [router]);
+  }, [router, pathname]);
 
   // Logout Handler with SweetAlert2 Confirmation
   const handleLogout = () => {
@@ -68,8 +86,8 @@ export default function AdminDashboard() {
       title: 'Are you sure you want to logout?',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#1e40af', // Matches blue-800
-      cancelButtonColor: '#6b7280', // Matches gray-500
+      confirmButtonColor: '#1e40af',
+      cancelButtonColor: '#6b7280',
       confirmButtonText: 'Yes',
       cancelButtonText: 'No',
     }).then((result) => {
@@ -199,13 +217,13 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700">
+    <div className="min-h-screen bg-gradient-to-br from-gray-800 via-blue-900 to-gray-700">
       {/* Header */}
-      <header className="bg-black text-white shadow-lg">
+      <header className="bg-gray-900/90 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-5 sm:px-6 lg:px-8 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <span className="text-3xl font-bold tracking-tight">DieCare</span>
-            <span className="text-lg font-medium text-blue-200">Admin Portal</span>
+            <span className="text-3xl text-white font-semibold tracking-tight">DieCare</span>
+            <span className="text-white text-2xl font-bold">Admin Portal</span>
           </div>
           <button
             onClick={handleLogout}
