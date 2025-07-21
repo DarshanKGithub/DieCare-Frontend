@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BellIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
-import axios from 'axios';
 
 export default function EmployeeDashboard() {
   const router = useRouter();
@@ -24,18 +23,6 @@ export default function EmployeeDashboard() {
 
     if (result.isConfirmed) {
       try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/logout`,
-            {},
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-        }
         localStorage.removeItem('token');
         await Swal.fire({
           icon: 'success',
@@ -50,7 +37,7 @@ export default function EmployeeDashboard() {
         await Swal.fire({
           icon: 'error',
           title: 'Logout Failed',
-          text: error.response?.data?.message || 'An error occurred during logout.',
+          text: 'An error occurred during logout.',
           confirmButtonColor: '#1e40af',
         });
       }
