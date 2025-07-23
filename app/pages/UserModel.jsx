@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
+import Swal from 'sweetalert2';
 
 export default function UserModal({ isOpen, onClose, onSave, user, mode, role }) {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ export default function UserModal({ isOpen, onClose, onSave, user, mode, role })
     password: '',
     role: role || 'hod',
   });
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (mode === 'edit' && user) {
@@ -37,24 +39,41 @@ export default function UserModal({ isOpen, onClose, onSave, user, mode, role })
         role: role || 'hod',
       });
     }
+    setErrors({});
   }, [user, mode, isOpen, role]);
 
-  if (!isOpen) return null;
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.name) newErrors.name = 'Name is required';
+    if (!formData.email) newErrors.email = 'Email is required';
+    if (!formData.department_name) newErrors.department_name = 'Department is required';
+    if (!formData.designation) newErrors.designation = 'Designation is required';
+    if (mode === 'add' && !formData.password) newErrors.password = 'Password is required';
+    if (!['hod', 'employee'].includes(formData.role)) newErrors.role = 'Invalid role';
+    return newErrors;
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const newErrors = validateForm();
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
     onSave(formData);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col md:flex-row overflow-hidden">
-        {/* Left Side: Mechanical Theme */}
         <div className="md:w-1/3 w-full bg-gradient-to-br from-gray-800 via-blue-900 to-gray-700 p-6 flex flex-col justify-center relative">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Cpath fill=%22none%22 stroke=%22%23ffffff33%22 stroke-width=%221%22 d=%22M10 10 L90 90 M10 90 L90 10%22/%3E%3C/svg%3E')] opacity-10"></div>
           <h3 className="text-2xl md:text-3xl font-bold text-white text-center drop-shadow-lg">
@@ -73,7 +92,6 @@ export default function UserModal({ isOpen, onClose, onSave, user, mode, role })
             <FaTimes size={20} />
           </button>
         </div>
-        {/* Right Side: Form */}
         <div className="md:w-2/3 w-full p-4 md:p-6 bg-gray-50 flex flex-col">
           <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto max-h-[70vh] md:max-h-[80vh] pr-2">
             <div className="flex flex-col space-y-1">
@@ -84,10 +102,10 @@ export default function UserModal({ isOpen, onClose, onSave, user, mode, role })
                 id="name"
                 value={formData.name}
                 onChange={handleChange}
-                required
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
                 placeholder="Enter full name"
               />
+              {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
             </div>
             <div className="flex flex-col space-y-1">
               <label htmlFor="email" className="text-sm font-semibold text-gray-700">Email Address</label>
@@ -97,10 +115,10 @@ export default function UserModal({ isOpen, onClose, onSave, user, mode, role })
                 id="email"
                 value={formData.email}
                 onChange={handleChange}
-                required
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
                 placeholder="Enter email address"
               />
+              {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
             </div>
             <div className="flex flex-col space-y-1">
               <label htmlFor="contact_number" className="text-sm font-semibold text-gray-700">Contact Number</label>
@@ -113,6 +131,7 @@ export default function UserModal({ isOpen, onClose, onSave, user, mode, role })
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
                 placeholder="Enter contact number"
               />
+              {errors.contact_number && <p className="text-sm text-red-600">{errors.contact_number}</p>}
             </div>
             <div className="flex flex-col space-y-1">
               <label htmlFor="department_name" className="text-sm font-semibold text-gray-700">Department</label>
@@ -122,10 +141,10 @@ export default function UserModal({ isOpen, onClose, onSave, user, mode, role })
                 id="department_name"
                 value={formData.department_name}
                 onChange={handleChange}
-                required
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
                 placeholder="Enter department"
               />
+              {errors.department_name && <p className="text-sm text-red-600">{errors.department_name}</p>}
             </div>
             <div className="flex flex-col space-y-1">
               <label htmlFor="designation" className="text-sm font-semibold text-gray-700">Designation</label>
@@ -138,6 +157,7 @@ export default function UserModal({ isOpen, onClose, onSave, user, mode, role })
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
                 placeholder="Enter designation"
               />
+              {errors.designation && <p className="text-sm text-red-600">{errors.designation}</p>}
             </div>
             {mode === 'add' && (
               <div className="flex flex-col space-y-1">
@@ -146,12 +166,13 @@ export default function UserModal({ isOpen, onClose, onSave, user, mode, role })
                   type="password"
                   name="password"
                   id="password"
+オス
                   value={formData.password}
                   onChange={handleChange}
-                  required
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
                   placeholder="Enter password"
                 />
+                {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
               </div>
             )}
             <div className="flex flex-col space-y-1">
@@ -161,12 +182,12 @@ export default function UserModal({ isOpen, onClose, onSave, user, mode, role })
                 id="role"
                 value={formData.role}
                 onChange={handleChange}
-                required
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
               >
                 <option value="hod">HOD</option>
                 <option value="employee">Employee</option>
               </select>
+              {errors.role && <p className="text-sm text-red-600">{errors.role}</p>}
             </div>
             <div className="flex justify-end gap-3 pt-4">
               <button

@@ -1,13 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BellIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 
 export default function HODDashboard() {
   const router = useRouter();
-  const [notifications, setNotifications] = useState(0); // Placeholder for notification count
+  const [notifications, setNotifications] = useState(0);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/');
+      return;
+    }
+    // Optional: Fetch HOD-specific data
+    // Example: fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/hod/data`, { headers: { Authorization: `Bearer ${token}` } })
+  }, [router]);
 
   const handleLogout = async () => {
     const result = await Swal.fire({
@@ -46,7 +56,6 @@ export default function HODDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-800 via-blue-900 to-gray-700">
-      {/* Navigation Bar */}
       <nav className="bg-gray-900/90 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -73,14 +82,11 @@ export default function HODDashboard() {
           </div>
         </div>
       </nav>
-
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h1 className="text-3xl font-bold text-white mb-6">HOD Dashboard</h1>
         <p className="text-lg text-gray-200 mb-8">
           Welcome to the HOD Dashboard. Here you can manage your department's activities.
         </p>
-        {/* Add more components or features as needed */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white/90 p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold text-gray-900">Department Overview</h2>
