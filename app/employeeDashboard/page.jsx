@@ -6,6 +6,12 @@ import { BellIcon, ArrowRightOnRectangleIcon, PlusIcon } from '@heroicons/react/
 import Swal from 'sweetalert2';
 import axios from 'axios';
 
+// Mock data to replace Redux store
+const mockParts = [
+  { serial_number: 'P001', part_name: 'Gearbox', company_name: 'Acme Corp', sap_code: 'SAP123', location: 'Warehouse A' },
+  { serial_number: 'P002', part_name: 'Shaft', company_name: 'Beta Inc', sap_code: 'SAP456', location: 'Warehouse B' },
+];
+
 export default function EmployeeDashboard() {
   const router = useRouter();
   const [notifications, setNotifications] = useState(0);
@@ -13,25 +19,38 @@ export default function EmployeeDashboard() {
   const [formData, setFormData] = useState({
     partName: '',
     companyName: '',
+    sapCode: '',
+    location: '',
   });
   const [errors, setErrors] = useState({});
-  const [parts, setParts] = useState([]);
+  const [parts, setParts] = useState(mockParts);
   const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.log('No token found, redirecting to login');
+    const storedToken = localStorage.getItem('token');
+    const userRole = localStorage.getItem('role') || 'employee';
+    setToken(storedToken);
+    setRole(userRole);
+
+    if (!storedToken || userRole !== 'employee') {
+      console.log('No token or incorrect role, redirecting to login');
       router.push('/');
       return;
     }
 
-    // Fetch parts from API
+    // Simulate fetching parts (replace with real API call if needed)
+    setParts(mockParts);
+    setNotifications(0); // Set to mock notification count if needed
+    setLoading(false);
+
+    // Optional: Real API call to fetch parts
+    /*
     const fetchParts = async () => {
       try {
         const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/parts`, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${storedToken}`,
           },
         });
         setParts(response.data);
@@ -47,28 +66,39 @@ export default function EmployeeDashboard() {
         setLoading(false);
       }
     };
-
     fetchParts();
+    */
   }, [router]);
 
-  // Create part-to-company mapping from fetched parts
-  const partToCompanyMap = parts.reduce((map, part) => {
-    map[part.part_name.toLowerCase()] = part.company_name;
+  // Create part-to-company mapping from parts
+  const partToDetailsMap = parts.reduce((map, part) => {
+    map[part.part_name.toLowerCase()] = {
+      companyName: part.company_name,
+      sapCode: part.sap_code,
+      location: part.location,
+    };
     return map;
   }, {});
-  const partNames = [...new Set(parts.map(part => part.part_name))]; // Unique part names
+  const partNames = [...new Set(parts.map(part => part.part_name))];
 
   const handlePartNameChange = (e) => {
     const partName = e.target.value;
-    const companyName = partToCompanyMap[partName.toLowerCase()] || '';
-    setFormData({ partName, companyName });
-    setErrors({ ...errors, partName: '', companyName: '' });
+    const partDetails = partToDetailsMap[partName.toLowerCase()] || {};
+    setFormData({
+      partName,
+      companyName: partDetails.companyName || '',
+      sapCode: partDetails.sapCode || '',
+      location: partDetails.location || '',
+    });
+    setErrors({ ...errors, partName: '', companyName: '', sapCode: '', location: '' });
   };
 
   const validateForm = () => {
     const newErrors = {};
     if (!formData.partName) newErrors.partName = 'Part name is required';
     if (!formData.companyName) newErrors.companyName = 'Company name is required';
+    if (!formData.sapCode) newErrors.sapCode = 'SAP code is required';
+    if (!formData.location) newErrors.location = 'Location is required';
     return newErrors;
   };
 
@@ -80,11 +110,28 @@ export default function EmployeeDashboard() {
       return;
     }
 
-    const token = localStorage.getItem('token');
     try {
+      setLoading(true);
+      // Simulate adding a new part (replace with real API call if needed)
+      const newPart = {
+        serial_number: `P${(parts.length + 1).toString().padStart(3, '0')}`,
+        part_name: formData.partName,
+        company_name: formData.companyName,
+        sap_code: formData.sapCode,
+        location: formData.location,
+      };
+      setParts([...parts, newPart]);
+
+      // Optional: Real API call to add part
+      
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/parts`,
-        { partName: formData.partName, companyName: formData.companyName },
+        {
+          partName: formData.partName,
+          companyName: formData.companyName,
+          sapCode: formData.sapCode,
+          location: formData.location,
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -92,26 +139,21 @@ export default function EmployeeDashboard() {
           },
         }
       );
+      setParts([...parts, response.data.part]);
+      
 
       await Swal.fire({
         icon: 'success',
         title: 'Part Added',
-        text: `Part added successfully with Serial Number: ${response.data.part.serial_number}`,
+        text: `Part added successfully with Serial Number: ${newPart.serial_number}`,
         confirmButtonColor: '#1e40af',
-        timer: 2000,
+        timer: 1500,
         showConfirmButton: false,
       });
 
-      // Refresh parts list after adding a new part
-      const updatedParts = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/parts`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setParts(updatedParts.data);
-
-      setFormData({ partName: '', companyName: '' });
+      setFormData({ partName: '', companyName: '', sapCode: '', location: '' });
       setIsFormOpen(false);
+      setErrors({});
     } catch (error) {
       console.error('Error adding part:', error);
       await Swal.fire({
@@ -120,6 +162,8 @@ export default function EmployeeDashboard() {
         text: error.response?.data?.message || 'Failed to add part',
         confirmButtonColor: '#1e40af',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -138,6 +182,7 @@ export default function EmployeeDashboard() {
     if (result.isConfirmed) {
       try {
         localStorage.removeItem('token');
+        localStorage.removeItem('role');
         await Swal.fire({
           icon: 'success',
           title: 'Logged Out',
@@ -206,7 +251,7 @@ export default function EmployeeDashboard() {
                 <button
                   onClick={() => {
                     setIsFormOpen(false);
-                    setFormData({ partName: '', companyName: '' });
+                    setFormData({ partName: '', companyName: '', sapCode: '', location: '' });
                     setErrors({});
                   }}
                   className="text-gray-600 hover:text-gray-800"
@@ -244,18 +289,44 @@ export default function EmployeeDashboard() {
                     name="companyName"
                     id="companyName"
                     value={formData.companyName}
-                    readOnly
-                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                    placeholder="Company name will auto-populate"
+                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
+                    placeholder="Enter company name"
                   />
                   {errors.companyName && <p className="text-sm text-red-600">{errors.companyName}</p>}
+                </div>
+                <div className="flex flex-col space-y-1">
+                  <label htmlFor="sapCode" className="text-sm font-semibold text-gray-700">SAP Code</label>
+                  <input
+                    type="text"
+                    name="sapCode"
+                    id="sapCode"
+                    value={formData.sapCode}
+                    onChange={(e) => setFormData({ ...formData, sapCode: e.target.value })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
+                    placeholder="Enter SAP code"
+                  />
+                  {errors.sapCode && <p className="text-sm text-red-600">{errors.sapCode}</p>}
+                </div>
+                <div className="flex flex-col space-y-1">
+                  <label htmlFor="location" className="text-sm font-semibold text-gray-700">Location</label>
+                  <input
+                    type="text"
+                    name="location"
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
+                    placeholder="Enter location"
+                  />
+                  {errors.location && <p className="text-sm text-red-600">{errors.location}</p>}
                 </div>
                 <div className="flex justify-end space-x-3">
                   <button
                     type="button"
                     onClick={() => {
                       setIsFormOpen(false);
-                      setFormData({ partName: '', companyName: '' });
+                      setFormData({ partName: '', companyName: '', sapCode: '', location: '' });
                       setErrors({});
                     }}
                     className="py-2 px-4 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition duration-300"
@@ -276,17 +347,20 @@ export default function EmployeeDashboard() {
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white/90 p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-900">My Tasks</h2>
-            <p className="text-gray-600 mt-2">View and manage your assigned tasks.</p>
-            <button className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300">
-              View Tasks
+            <h2 className="text-xl font-semibold text-gray-900">Parts Management</h2>
+            <p className="text-gray-600 mt-2">Add and manage parts inventory.</p>
+            <button
+              onClick={() => setIsFormOpen(true)}
+              className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
+            >
+              Add Part
             </button>
           </div>
           <div className="bg-white/90 p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-900">Performance Metrics</h2>
-            <p className="text-gray-600 mt-2">Track your performance and productivity.</p>
+            <h2 className="text-xl font-semibold text-gray-900">Tasks</h2>
+            <p className="text-gray-600 mt-2">View and manage your assigned tasks.</p>
             <button className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300">
-              View Metrics
+              View Tasks
             </button>
           </div>
           <div className="bg-white/90 p-6 rounded-lg shadow-md">

@@ -5,7 +5,6 @@ import axios from 'axios';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
-import Link from 'next/link';
 
 export default function LoginPage() {
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -15,7 +14,6 @@ export default function LoginPage() {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      // Validate environment variables
       if (!process.env.NEXT_PUBLIC_API_URL) {
         throw new Error('API URL is not configured');
       }
@@ -23,10 +21,8 @@ export default function LoginPage() {
         throw new Error('Admin email is not configured');
       }
 
-      // Log the email being used for debugging
       console.log('Attempting login with email:', data.email);
 
-      let response;
       const isAdmin = data.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
       const endpoint = isAdmin
         ? `${process.env.NEXT_PUBLIC_API_URL}/api/admin/login`
@@ -34,12 +30,11 @@ export default function LoginPage() {
 
       console.log('Calling endpoint:', endpoint);
 
-      response = await axios.post(endpoint, {
+      const response = await axios.post(endpoint, {
         email: data.email,
         password: data.password,
       });
 
-      // Log the response for debugging
       console.log('API Response:', response.data);
 
       const { token } = response.data;
@@ -47,43 +42,40 @@ export default function LoginPage() {
         throw new Error('No token received from server');
       }
 
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const role = payload.role;
+      console.log('Decoded token role:', role);
+
+      if (!role) {
+        throw new Error('Role not found in token');
+      }
+
       localStorage.setItem('token', token);
+      localStorage.setItem('role', role);
 
-      // Decode token safely
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const role = payload.role;
-        console.log('Decoded token role:', role);
+      await Swal.fire({
+        icon: 'success',
+        title: 'Login Successful',
+        text: 'You have logged in successfully! Redirecting...',
+        confirmButtonColor: '#1e40af',
+        timer: 1500,
+        showConfirmButton: false,
+      });
 
-        if (!role) {
-          throw new Error('Role not found in token');
-        }
-
-        await Swal.fire({
-          icon: 'success',
-          title: 'Login Successful',
-          text: 'You have logged in successfully! Redirecting...',
-          confirmButtonColor: '#1e40af',
-          timer: 1500,
-          showConfirmButton: false,
-        });
-
-        // Navigate based on role
-        if (role === 'admin') {
-          console.log('Navigating to /adminDashboard');
-          router.push('/adminDashboard');
-        } else if (role === 'hod') {
-          console.log('Navigating to /HODDashboard');
-          router.push('/HODDashboard');
-        } else if (role === 'employee') {
-          console.log('Navigating to /employeeDashboard');
-          router.push('/employeeDashboard');
-        } else {
-          throw new Error(`Unknown role: ${role}`);
-        }
-      } catch (decodeError) {
-        console.error('Token decoding error:', decodeError);
-        throw new Error('Invalid token format');
+      if (role === 'admin') {
+        console.log('Navigating to /adminDashboard');
+        router.push('/adminDashboard');
+      } else if (role === 'hod') {
+        console.log('Navigating to /HODDashboard');
+        router.push('/HODDashboard');
+      } else if (role === 'employee') {
+        console.log('Navigating to /employeeDashboard');
+        router.push('/employeeDashboard');
+      } else if (role === 'quality') {
+        console.log('Navigating to /qualityDashboard');
+        router.push('/qualityDashboard');
+      } else {
+        throw new Error(`Unknown role: ${role}`);
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -118,7 +110,7 @@ export default function LoginPage() {
               <input
                 placeholder="Email Address"
                 type="email"
-                {...register('email', { required: 'Email is required' })}
+                {...register('email', { required: 'Email is required', pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' } })}
                 className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
               />
               {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
@@ -127,7 +119,7 @@ export default function LoginPage() {
               <input
                 placeholder="Password"
                 type="password"
-                {...register('password', { required: 'Password is required' })}
+                {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Password must be at least 6 characters' } })}
                 className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
               />
               {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
