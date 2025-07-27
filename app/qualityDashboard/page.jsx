@@ -6,12 +6,7 @@ import { BellIcon, ArrowRightOnRectangleIcon, PlusIcon } from '@heroicons/react/
 import Swal from 'sweetalert2';
 import axios from 'axios';
 
-// Mock data to replace Redux store
-const mockParts = [
-  { serial_number: 'P001', part_name: 'Gearbox', company_name: 'Acme Corp', sap_code: 'SAP123', location: 'Warehouse A' },
-  { serial_number: 'P002', part_name: 'Shaft', company_name: 'Beta Inc', sap_code: 'SAP456', location: 'Warehouse B' },
-];
-
+// Mock data for tasks and notifications
 const mockTasks = [
   { id: 'T001', part_name: 'Gearbox', description: 'Inspect gearbox', status: 'pending' },
 ];
@@ -24,11 +19,11 @@ export default function QualityDashboard() {
   const router = useRouter();
   const [tasks, setTasks] = useState(mockTasks);
   const [notifications, setNotifications] = useState(mockNotifications);
-  const [parts, setParts] = useState(mockParts);
+  const [parts, setParts] = useState([]);
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [isNotificationFormOpen, setIsNotificationFormOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [taskFormData, setTaskFormData] = useState({
-    partId: '',
     partName: '',
     companyName: '',
     sapCode: '',
@@ -48,7 +43,7 @@ export default function QualityDashboard() {
   const [notificationCount, setNotificationCount] = useState(notifications.length);
   const [tasksLoading, setTasksLoading] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
-  const [partsLoading, setPartsLoading] = useState(false);
+  const [partsLoading, setPartsLoading] = useState(true);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -62,44 +57,56 @@ export default function QualityDashboard() {
       return;
     }
 
-    // Simulate fetching data (or replace with real API calls)
-    setParts(mockParts);
+    const fetchParts = async () => {
+      try {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/parts`, {
+          headers: { Authorization: `Bearer ${storedToken}` },
+        });
+        setParts(response.data);
+        setPartsLoading(false);
+      } catch (error) {
+        console.error('Error fetching parts:', error);
+        setPartsLoading(false);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to fetch parts',
+          confirmButtonColor: '#1e40af',
+        });
+      }
+    };
+
+    fetchParts();
     setTasks(mockTasks);
     setNotifications(mockNotifications);
     setNotificationCount(mockNotifications.length);
-    setPartsLoading(false);
     setTasksLoading(false);
     setNotificationsLoading(false);
   }, [router]);
 
   const partToDetailsMap = parts.reduce((map, part) => {
-    map[part.serial_number] = {
-      partName: part.part_name,
+    map[part.part_name] = {
       companyName: part.company_name,
       sapCode: part.sap_code,
-      location: part.location,
     };
     return map;
   }, {});
-  const partIds = [...new Set(parts.map((part) => part.serial_number))];
+  const partNames = [...new Set(parts.map((part) => part.part_name))];
 
   const handleTaskPartChange = (e) => {
-    const partId = e.target.value;
-    const partDetails = partToDetailsMap[partId] || {};
+    const partName = e.target.value;
+    const partDetails = partToDetailsMap[partName] || {};
     setTaskFormData({
       ...taskFormData,
-      partId,
-      partName: partDetails.partName || '',
+      partName,
       companyName: partDetails.companyName || '',
       sapCode: partDetails.sapCode || '',
-      location: partDetails.location || '',
     });
-    setErrors({ ...errors, partId: '', partName: '', companyName: '', sapCode: '', location: '' });
+    setErrors({ ...errors, partName: '', companyName: '', sapCode: '' });
   };
 
   const validateTaskForm = () => {
     const newErrors = {};
-    if (!taskFormData.partId) newErrors.partId = 'Part ID is required';
     if (!taskFormData.partName) newErrors.partName = 'Part name is required';
     if (!taskFormData.companyName) newErrors.companyName = 'Company name is required';
     if (!taskFormData.sapCode) newErrors.sapCode = 'SAP code is required';
@@ -128,7 +135,6 @@ export default function QualityDashboard() {
 
     try {
       setTasksLoading(true);
-      // Simulate task creation (replace with real API call if needed)
       const newTask = {
         id: `T${(tasks.length + 1).toString().padStart(3, '0')}`,
         part_name: taskFormData.partName,
@@ -137,16 +143,24 @@ export default function QualityDashboard() {
       };
       setTasks([...tasks, newTask]);
 
+      const newNotification = {
+        id: `N${(notifications.length + 1).toString().padStart(3, '0')}`,
+        message: `New task ${newTask.id} assigned: ${taskFormData.description}`,
+        recipients: ['employee', 'hod'],
+        taskId: newTask.id,
+      };
+      setNotifications([...notifications, newNotification]);
+      setNotificationCount(notifications.length + 1);
+
       await Swal.fire({
         icon: 'success',
         title: 'Task Created',
-        text: 'Task created successfully!',
+        text: 'Task created and notifications sent to Employee and HOD!',
         confirmButtonColor: '#1e40af',
         timer: 1500,
         showConfirmButton: false,
       });
       setTaskFormData({
-        partId: '',
         partName: '',
         companyName: '',
         sapCode: '',
@@ -179,7 +193,6 @@ export default function QualityDashboard() {
 
     try {
       setNotificationsLoading(true);
-      // Simulate notification creation (replace with real API call if needed)
       const newNotification = {
         id: `N${(notifications.length + 1).toString().padStart(3, '0')}`,
         message: notificationFormData.message,
@@ -266,20 +279,6 @@ export default function QualityDashboard() {
                 )}
               </div>
               <button
-                onClick={() => setIsTaskFormOpen(true)}
-                className="flex items-center space-x-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
-              >
-                <PlusIcon className="h-5 w-5" />
-                <span>Add Task</span>
-              </button>
-              <button
-                onClick={() => setIsNotificationFormOpen(true)}
-                className="flex items-center space-x-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
-              >
-                <PlusIcon className="h-5 w-5" />
-                <span>Send Notification</span>
-              </button>
-              <button
                 onClick={handleLogout}
                 className="flex items-center space-x-2 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
               >
@@ -291,20 +290,51 @@ export default function QualityDashboard() {
         </div>
       </nav>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-3xl font-bold text-white mb-6">Quality Dashboard</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-white">Quality Dashboard</h1>
+        </div>
         <p className="text-lg text-gray-200 mb-8">
           Welcome to the Quality Dashboard. Create tasks, send notifications, and manage quality control.
         </p>
+        <div className="fixed bottom-6 right-6">
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="bg-green-700 hover:bg-green-800 text-white p-4 rounded-full shadow-lg transition duration-300"
+          >
+            <PlusIcon className="h-6 w-6" />
+          </button>
+          {isMenuOpen && (
+            <div className="absolute bottom-16 right-0 bg-white rounded-lg shadow-lg p-4 w-48">
+              <button
+                onClick={() => {
+                  setIsTaskFormOpen(true);
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition duration-200"
+              >
+                Add Task
+              </button>
+              <button
+                onClick={() => {
+                  setIsNotificationFormOpen(true);
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition duration-200"
+              >
+                Send Notification
+              </button>
+            </div>
+          )}
+        </div>
         {isTaskFormOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md p-6">
+          <div className="fixed inset-0 bg-gradient-to-br from-gray-800 via-blue-900 to-gray-700 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-4xl p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">Create New Task</h2>
                 <button
                   onClick={() => {
                     setIsTaskFormOpen(false);
                     setTaskFormData({
-                      partId: '',
                       partName: '',
                       companyName: '',
                       sapCode: '',
@@ -323,66 +353,83 @@ export default function QualityDashboard() {
                 </button>
               </div>
               <form onSubmit={handleTaskSubmit} className="space-y-4">
-                <div className="flex flex-col space-y-1">
-                  <label htmlFor="partId" className="text-sm font-semibold text-gray-700">Part ID</label>
-                  <select
-                    name="partId"
-                    id="partId"
-                    value={taskFormData.partId}
-                    onChange={handleTaskPartChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
-                    disabled={partsLoading}
-                  >
-                    <option value="" disabled>Select a part</option>
-                    {partIds.map((id) => (
-                      <option key={id} value={id}>
-                        {id}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.partId && <p className="text-sm text-red-600">{errors.partId}</p>}
-                  {partsLoading && <p className="text-sm text-gray-600">Loading parts...</p>}
+                <div className="flex flex-row flex-wrap gap-4">
+                  <div className="flex flex-col flex-1 min-w-[200px]">
+                    <label htmlFor="partName" className="text-sm font-semibold text-gray-700">Part Name</label>
+                    <select
+                      name="partName"
+                      id="partName"
+                      value={taskFormData.partName}
+                      onChange={handleTaskPartChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
+                      disabled={partsLoading}
+                    >
+                      <option value="" disabled>Select a part</option>
+                      {partNames.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.partName && <p className="text-sm text-red-600">{errors.partName}</p>}
+                    {partsLoading && <p className="text-sm text-gray-600">Loading parts...</p>}
+                  </div>
+                  <div className="flex flex-col flex-1 min-w-[200px]">
+                    <label htmlFor="companyName" className="text-sm font-semibold text-gray-700">Company Name</label>
+                    <input
+                      type="text"
+                      name="companyName"
+                      id="companyName"
+                      value={taskFormData.companyName}
+                      readOnly
+                      className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                      placeholder="Company name will auto-populate"
+                    />
+                    {errors.companyName && <p className="text-sm text-red-600">{errors.companyName}</p>}
+                  </div>
+                  <div className="flex flex-col flex-1 min-w-[200px]">
+                    <label htmlFor="sapCode" className="text-sm font-semibold text-gray-700">SAP Code</label>
+                    <input
+                      type="text"
+                      name="sapCode"
+                      id="sapCode"
+                      value={taskFormData.sapCode}
+                      readOnly
+                      className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                      placeholder="SAP code will auto-populate"
+                    />
+                    {errors.sapCode && <p className="text-sm text-red-600">{errors.sapCode}</p>}
+                  </div>
+                  <div className="flex flex-col flex-1 min-w-[200px]">
+                    <label htmlFor="location" className="text-sm font-semibold text-gray-700">Location</label>
+                    <input
+                      type="text"
+                      name="location"
+                      id="location"
+                      value={taskFormData.location}
+                      onChange={(e) => setTaskFormData({ ...taskFormData, location: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
+                      placeholder="Enter location"
+                    />
+                    {errors.location && <p className="text-sm text-red-600">{errors.location}</p>}
+                  </div>
+                  <div className="flex flex-col flex-1 min-w-[200px]">
+                    <label htmlFor="status" className="text-sm font-semibold text-gray-700">Status</label>
+                    <select
+                      name="status"
+                      id="status"
+                      value={taskFormData.status}
+                      onChange={(e) => setTaskFormData({ ...taskFormData, status: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                    {errors.status && <p className="text-sm text-red-600">{errors.status}</p>}
+                  </div>
                 </div>
-                <div className="flex flex-col space-y-1">
-                  <label htmlFor="partName" className="text-sm font-semibold text-gray-700">Part Name</label>
-                  <input
-                    type="text"
-                    name="partName"
-                    id="partName"
-                    value={taskFormData.partName}
-                    readOnly
-                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                    placeholder="Part name will auto-populate"
-                  />
-                  {errors.partName && <p className="text-sm text-red-600">{errors.partName}</p>}
-                </div>
-                <div className="flex flex-col space-y-1">
-                  <label htmlFor="companyName" className="text-sm font-semibold text-gray-700">Company Name</label>
-                  <input
-                    type="text"
-                    name="companyName"
-                    id="companyName"
-                    value={taskFormData.companyName}
-                    readOnly
-                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                    placeholder="Company name will auto-populate"
-                  />
-                  {errors.companyName && <p className="text-sm text-red-600">{errors.companyName}</p>}
-                </div>
-                <div className="flex flex-col space-y-1">
-                  <label htmlFor="sapCode" className="text-sm font-semibold text-gray-700">SAP Code</label>
-                  <input
-                    type="text"
-                    name="sapCode"
-                    id="sapCode"
-                    value={taskFormData.sapCode}
-                    readOnly
-                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                    placeholder="SAP code will auto-populate"
-                  />
-                  {errors.sapCode && <p className="text-sm text-red-600">{errors.sapCode}</p>}
-                </div>
-                <div className="flex flex-col space-y-1">
+                <div className="flex flex-col">
                   <label htmlFor="description" className="text-sm font-semibold text-gray-700">Description</label>
                   <textarea
                     name="description"
@@ -394,41 +441,12 @@ export default function QualityDashboard() {
                   />
                   {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
                 </div>
-                <div className="flex flex-col space-y-1">
-                  <label htmlFor="location" className="text-sm font-semibold text-gray-700">Location</label>
-                  <input
-                    type="text"
-                    name="location"
-                    id="location"
-                    value={taskFormData.location}
-                    readOnly
-                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                    placeholder="Location will auto-populate"
-                  />
-                  {errors.location && <p className="text-sm text-red-600">{errors.location}</p>}
-                </div>
-                <div className="flex flex-col space-y-1">
-                  <label htmlFor="status" className="text-sm font-semibold text-gray-700">Status</label>
-                  <select
-                    name="status"
-                    id="status"
-                    value={taskFormData.status}
-                    onChange={(e) => setTaskFormData({ ...taskFormData, status: e.target.value })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                  {errors.status && <p className="text-sm text-red-600">{errors.status}</p>}
-                </div>
                 <div className="flex justify-end space-x-3">
                   <button
                     type="button"
                     onClick={() => {
                       setIsTaskFormOpen(false);
                       setTaskFormData({
-                        partId: '',
                         partName: '',
                         companyName: '',
                         sapCode: '',
@@ -456,7 +474,7 @@ export default function QualityDashboard() {
           </div>
         )}
         {isNotificationFormOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-gradient-to-br from-gray-800 via-blue-900 to-gray-700 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl w-full max-w-md p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">Send Notification</h2>
@@ -576,7 +594,10 @@ export default function QualityDashboard() {
           <div className="bg-white/90 p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold text-gray-900">My Tasks</h2>
             <p className="text-gray-600 mt-2">View and manage your created tasks.</p>
-            <button className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300">
+            <button
+              onClick={() => router.push('/taskPage')}
+              className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
+            >
               View Tasks
             </button>
           </div>
