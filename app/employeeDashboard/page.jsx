@@ -16,6 +16,7 @@ export default function EmployeeDashboard() {
   const router = useRouter();
   const [notifications, setNotifications] = useState(0);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [formData, setFormData] = useState({
     partName: '',
     companyName: '',
@@ -26,6 +27,7 @@ export default function EmployeeDashboard() {
   const [parts, setParts] = useState(mockParts);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
+  const [role, setRole] = useState(null); // Added missing useState for role
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -39,13 +41,7 @@ export default function EmployeeDashboard() {
       return;
     }
 
-    // Simulate fetching parts (replace with real API call if needed)
-    setParts(mockParts);
-    setNotifications(0); // Set to mock notification count if needed
-    setLoading(false);
-
-    // Optional: Real API call to fetch parts
-    /*
+    // Fetch parts from API
     const fetchParts = async () => {
       try {
         const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/parts`, {
@@ -57,20 +53,20 @@ export default function EmployeeDashboard() {
         setLoading(false);
       } catch (error) {
         console.error('Error fetching parts:', error);
-        await Swal.fire({
+        setParts(mockParts); // Fallback to mock data
+        setLoading(false);
+        Swal.fire({
           icon: 'error',
           title: 'Error',
           text: error.response?.data?.message || 'Failed to fetch parts',
           confirmButtonColor: '#1e40af',
         });
-        setLoading(false);
       }
     };
     fetchParts();
-    */
+    setNotifications(0); // Set to mock notification count if needed
   }, [router]);
 
-  // Create part-to-company mapping from parts
   const partToDetailsMap = parts.reduce((map, part) => {
     map[part.part_name.toLowerCase()] = {
       companyName: part.company_name,
@@ -112,18 +108,7 @@ export default function EmployeeDashboard() {
 
     try {
       setLoading(true);
-      // Simulate adding a new part (replace with real API call if needed)
-      const newPart = {
-        serial_number: `P${(parts.length + 1).toString().padStart(3, '0')}`,
-        part_name: formData.partName,
-        company_name: formData.companyName,
-        sap_code: formData.sapCode,
-        location: formData.location,
-      };
-      setParts([...parts, newPart]);
-
-      // Optional: Real API call to add part
-      
+      // Add part via API
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/parts`,
         {
@@ -140,7 +125,16 @@ export default function EmployeeDashboard() {
         }
       );
       setParts([...parts, response.data.part]);
-      
+
+      // Fallback to mock data addition if API is not used
+      const newPart = {
+        serial_number: `P${(parts.length + 1).toString().padStart(3, '0')}`,
+        part_name: formData.partName,
+        company_name: formData.companyName,
+        sap_code: formData.sapCode,
+        location: formData.location,
+      };
+      setParts([...parts, newPart]);
 
       await Swal.fire({
         icon: 'success',
@@ -221,13 +215,6 @@ export default function EmployeeDashboard() {
                 )}
               </div>
               <button
-                onClick={() => setIsFormOpen(true)}
-                className="flex items-center space-x-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
-              >
-                <PlusIcon className="h-5 w-5" />
-                <span>Add Part</span>
-              </button>
-              <button
                 onClick={handleLogout}
                 className="flex items-center space-x-2 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
               >
@@ -243,6 +230,27 @@ export default function EmployeeDashboard() {
         <p className="text-lg text-gray-200 mb-8">
           Welcome to the Employee Dashboard. Manage your tasks, view performance metrics, and update your profile.
         </p>
+        <div className="fixed bottom-6 right-6">
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="bg-green-700 hover:bg-green-800 text-white p-4 rounded-full shadow-lg transition duration-300"
+          >
+            <PlusIcon className="h-6 w-6" />
+          </button>
+          {isMenuOpen && (
+            <div className="absolute bottom-16 right-0 bg-white rounded-lg shadow-lg p-4 w-48">
+              <button
+                onClick={() => {
+                  setIsFormOpen(true);
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition duration-200"
+              >
+                Add Part
+              </button>
+            </div>
+          )}
+        </div>
         {isFormOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl w-full max-w-md p-6">
@@ -350,16 +358,19 @@ export default function EmployeeDashboard() {
             <h2 className="text-xl font-semibold text-gray-900">Parts Management</h2>
             <p className="text-gray-600 mt-2">Add and manage parts inventory.</p>
             <button
-              onClick={() => setIsFormOpen(true)}
+              onClick={() => router.push('/partsPage')}
               className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
             >
-              Add Part
+              View Parts
             </button>
           </div>
           <div className="bg-white/90 p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold text-gray-900">Tasks</h2>
             <p className="text-gray-600 mt-2">View and manage your assigned tasks.</p>
-            <button className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300">
+            <button
+              onClick={() => router.push('/employeeTaskPage')}
+              className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
+            >
               View Tasks
             </button>
           </div>
