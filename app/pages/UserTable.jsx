@@ -34,7 +34,7 @@ export default function UserTable({ title, users, onAdd, onEdit, onDelete }) {
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">{user.name}</td>
                   <td className="px-6 py-4">{user.email}</td>
-13                  <td className="px-6 py-4">{user.contact_number || '-'}</td>
+                 <td className="px-6 py-4">{user.contact_number || '-'}</td>
                   <td className="px-6 py-4">{user.department_name || '-'}</td>
                   <td className="px-6 py-4">{user.designation || '-'}</td>
                   <td className="px-6 py-4">{user.role}</td>
