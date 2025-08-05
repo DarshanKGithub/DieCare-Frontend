@@ -1,18 +1,32 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { BellIcon, ArrowRightOnRectangleIcon, PlusIcon } from '@heroicons/react/24/outline';
-import Swal from 'sweetalert2';
-import axios from 'axios';
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import {
+  BellIcon,
+  ArrowRightOnRectangleIcon,
+  PlusIcon,
+} from "@heroicons/react/24/outline";
+import Swal from "sweetalert2";
+import axios from "axios";
 
 // Mock data for tasks and notifications
 const mockTasks = [
-  { id: 'T001', part_name: 'Gearbox', description: 'Inspect gearbox', status: 'pending' },
+  {
+    id: "T001",
+    part_name: "Gearbox",
+    description: "Inspect gearbox",
+    status: "pending",
+  },
 ];
 
 const mockNotifications = [
-  { id: 'N001', message: 'Task T001 assigned', recipients: ['employee'], taskId: 'T001' },
+  {
+    id: "N001",
+    message: "Task T001 assigned",
+    recipients: ["employee"],
+    taskId: "T001",
+  },
 ];
 
 export default function QualityDashboard() {
@@ -22,61 +36,62 @@ export default function QualityDashboard() {
   const [parts, setParts] = useState([]);
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [isNotificationFormOpen, setIsNotificationFormOpen] = useState(false);
+  const [isNotificationsViewOpen, setIsNotificationsViewOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [taskFormData, setTaskFormData] = useState({
-    partName: '',
-    companyName: '',
-    sapCode: '',
-    description: '',
-    location: '',
-    status: 'pending',
-    createdBy: 'quality',
+    partName: "",
+    companyName: "",
+    sapCode: "",
+    description: "",
+    location: "",
+    status: "pending",
+    createdBy: "quality",
   });
   const [notificationFormData, setNotificationFormData] = useState({
-    message: '',
+    message: "",
     recipients: [],
-    taskId: '',
+    taskId: "",
   });
   const [errors, setErrors] = useState({});
   const [token, setToken] = useState(null);
   const [role, setRole] = useState(null);
-  const [notificationCount, setNotificationCount] = useState(notifications.length);
+  const [notificationCount, setNotificationCount] = useState(
+    notifications.length
+  );
   const [tasksLoading, setTasksLoading] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [partsLoading, setPartsLoading] = useState(true);
 
+  const notificationRef = useRef(null);
+
+  // Add this useEffect for handling clicks outside the notification popup
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const userRole = localStorage.getItem('role') || 'quality';
-    setToken(storedToken);
-    setRole(userRole);
-
-    if (!storedToken || userRole !== 'quality') {
-      console.log('No token or incorrect role, redirecting to login');
-      router.push('/');
-      return;
-    }
-
-    const fetchParts = async () => {
-      try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/parts`, {
-          headers: { Authorization: `Bearer ${storedToken}` },
-        });
-        setParts(response.data);
-        setPartsLoading(false);
-      } catch (error) {
-        console.error('Error fetching parts:', error);
-        setPartsLoading(false);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Failed to fetch parts',
-          confirmButtonColor: '#1e40af',
-        });
+    const handleClickOutside = (event) => {
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      ) {
+        setIsNotificationsViewOpen(false);
       }
     };
 
-    fetchParts();
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    const userRole = localStorage.getItem("role") || "quality";
+    setToken(storedToken);
+    setRole(userRole);
+
+    if (!storedToken || userRole !== "quality") {
+      console.log("No token or incorrect role, redirecting to login");
+      router.push("/");
+      return;
+    }
     setTasks(mockTasks);
     setNotifications(mockNotifications);
     setNotificationCount(mockNotifications.length);
@@ -99,29 +114,35 @@ export default function QualityDashboard() {
     setTaskFormData({
       ...taskFormData,
       partName,
-      companyName: partDetails.companyName || '',
-      sapCode: partDetails.sapCode || '',
+      companyName: partDetails.companyName || "",
+      sapCode: partDetails.sapCode || "",
     });
-    setErrors({ ...errors, partName: '', companyName: '', sapCode: '' });
+    setErrors({ ...errors, partName: "", companyName: "", sapCode: "" });
   };
 
   const validateTaskForm = () => {
     const newErrors = {};
-    if (!taskFormData.partName) newErrors.partName = 'Part name is required';
-    if (!taskFormData.companyName) newErrors.companyName = 'Company name is required';
-    if (!taskFormData.sapCode) newErrors.sapCode = 'SAP code is required';
-    if (!taskFormData.description) newErrors.description = 'Description is required';
-    if (!taskFormData.location) newErrors.location = 'Location is required';
-    if (!taskFormData.status) newErrors.status = 'Status is required';
+    if (!taskFormData.partName) newErrors.partName = "Part name is required";
+    if (!taskFormData.companyName)
+      newErrors.companyName = "Company name is required";
+    if (!taskFormData.sapCode) newErrors.sapCode = "SAP code is required";
+    if (!taskFormData.description)
+      newErrors.description = "Description is required";
+    if (!taskFormData.location) newErrors.location = "Location is required";
+    if (!taskFormData.status) newErrors.status = "Status is required";
     return newErrors;
   };
 
   const validateNotificationForm = () => {
     const newErrors = {};
-    if (!notificationFormData.message) newErrors.message = 'Message is required';
-    if (!notificationFormData.taskId) newErrors.taskId = 'Task ID is required';
-    if (!notificationFormData.recipients || notificationFormData.recipients.length === 0)
-      newErrors.recipients = 'At least one recipient is required';
+    if (!notificationFormData.message)
+      newErrors.message = "Message is required";
+    if (!notificationFormData.taskId) newErrors.taskId = "Task ID is required";
+    if (
+      !notificationFormData.recipients ||
+      notificationFormData.recipients.length === 0
+    )
+      newErrors.recipients = "At least one recipient is required";
     return newErrors;
   };
 
@@ -136,7 +157,7 @@ export default function QualityDashboard() {
     try {
       setTasksLoading(true);
       const newTask = {
-        id: `T${(tasks.length + 1).toString().padStart(3, '0')}`,
+        id: `T${(tasks.length + 1).toString().padStart(3, "0")}`,
         part_name: taskFormData.partName,
         description: taskFormData.description,
         status: taskFormData.status,
@@ -144,39 +165,39 @@ export default function QualityDashboard() {
       setTasks([...tasks, newTask]);
 
       const newNotification = {
-        id: `N${(notifications.length + 1).toString().padStart(3, '0')}`,
+        id: `N${(notifications.length + 1).toString().padStart(3, "0")}`,
         message: `New task ${newTask.id} assigned: ${taskFormData.description}`,
-        recipients: ['employee', 'hod'],
+        recipients: ["employee", "hod"],
         taskId: newTask.id,
       };
       setNotifications([...notifications, newNotification]);
       setNotificationCount(notifications.length + 1);
 
       await Swal.fire({
-        icon: 'success',
-        title: 'Task Created',
-        text: 'Task created and notifications sent to Employee and HOD!',
-        confirmButtonColor: '#1e40af',
+        icon: "success",
+        title: "Task Created",
+        text: "Task created and notifications sent to Employee and HOD!",
+        confirmButtonColor: "#1e40af",
         timer: 1500,
         showConfirmButton: false,
       });
       setTaskFormData({
-        partName: '',
-        companyName: '',
-        sapCode: '',
-        description: '',
-        location: '',
-        status: 'pending',
-        createdBy: 'quality',
+        partName: "",
+        companyName: "",
+        sapCode: "",
+        description: "",
+        location: "",
+        status: "pending",
+        createdBy: "quality",
       });
       setIsTaskFormOpen(false);
     } catch (error) {
-      console.error('Error creating task:', error);
+      console.error("Error creating task:", error);
       await Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.message || 'Failed to create task',
-        confirmButtonColor: '#1e40af',
+        icon: "error",
+        title: "Error",
+        text: error.message || "Failed to create task",
+        confirmButtonColor: "#1e40af",
       });
     } finally {
       setTasksLoading(false);
@@ -194,7 +215,7 @@ export default function QualityDashboard() {
     try {
       setNotificationsLoading(true);
       const newNotification = {
-        id: `N${(notifications.length + 1).toString().padStart(3, '0')}`,
+        id: `N${(notifications.length + 1).toString().padStart(3, "0")}`,
         message: notificationFormData.message,
         recipients: notificationFormData.recipients,
         taskId: notificationFormData.taskId,
@@ -203,22 +224,22 @@ export default function QualityDashboard() {
       setNotificationCount(notifications.length + 1);
 
       await Swal.fire({
-        icon: 'success',
-        title: 'Notification Sent',
-        text: 'Notification sent successfully!',
-        confirmButtonColor: '#1e40af',
+        icon: "success",
+        title: "Notification Sent",
+        text: "Notification sent successfully!",
+        confirmButtonColor: "#1e40af",
         timer: 1500,
         showConfirmButton: false,
       });
-      setNotificationFormData({ message: '', recipients: [], taskId: '' });
+      setNotificationFormData({ message: "", recipients: [], taskId: "" });
       setIsNotificationFormOpen(false);
     } catch (error) {
-      console.error('Error sending notification:', error);
+      console.error("Error sending notification:", error);
       await Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.message || 'Failed to send notification',
-        confirmButtonColor: '#1e40af',
+        icon: "error",
+        title: "Error",
+        text: error.message || "Failed to send notification",
+        confirmButtonColor: "#1e40af",
       });
     } finally {
       setNotificationsLoading(false);
@@ -227,35 +248,34 @@ export default function QualityDashboard() {
 
   const handleLogout = async () => {
     const result = await Swal.fire({
-      icon: 'question',
-      title: 'Are you sure?',
-      text: 'Do you want to log out?',
+      icon: "question",
+      title: "Are you sure you Want to Logout?",
       showCancelButton: true,
-      confirmButtonColor: '#1e40af',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, log out',
-      cancelButtonText: 'Cancel',
+      confirmButtonColor: "#1e40af",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, log out",
+      cancelButtonText: "Cancel",
     });
 
     if (result.isConfirmed) {
       try {
-        localStorage.removeItem('token');
-        localStorage.removeItem('role');
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
         await Swal.fire({
-          icon: 'success',
-          title: 'Logged Out',
-          text: 'You have been logged out successfully!',
-          confirmButtonColor: '#1e40af',
+          icon: "success",
+          title: "Logged Out",
+          text: "You have been logged out successfully!",
+          confirmButtonColor: "#1e40af",
           timer: 1500,
           showConfirmButton: false,
         });
-        router.push('/');
+        router.push("/");
       } catch (error) {
         await Swal.fire({
-          icon: 'error',
-          title: 'Logout Failed',
-          text: 'An error occurred during logout.',
-          confirmButtonColor: '#1e40af',
+          icon: "error",
+          title: "Logout Failed",
+          text: "An error occurred during logout.",
+          confirmButtonColor: "#1e40af",
         });
       }
     }
@@ -267,15 +287,74 @@ export default function QualityDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex-shrink-0">
-              <h1 className="text-white text-2xl font-bold">DieCare Portal</h1>
+              <h1 className="text-white text-2xl font-bold">DieCare</h1>
+            </div>
+            <div className="flex justify-center">
+              <span className="text-white text-2xl font-bold">
+                Quality Portal
+              </span>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="relative">
-                <BellIcon className="h-6 w-6 text-white cursor-pointer hover:text-blue-300 transition duration-200" />
-                {notificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                    {notificationCount}
-                  </span>
+              <div className="relative" ref={notificationRef}>
+                <button
+                  onClick={() =>
+                    setIsNotificationsViewOpen(!isNotificationsViewOpen)
+                  }
+                  className="relative"
+                >
+                  <BellIcon className="h-6 w-6 text-white cursor-pointer hover:text-blue-300 transition duration-200" />
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                      {notificationCount}
+                    </span>
+                  )}
+                </button>
+                {isNotificationsViewOpen && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg z-50">
+                    <div className="py-1">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <h3 className="text-sm font-semibold text-gray-900">
+                          Notifications
+                        </h3>
+                      </div>
+                      {notifications.length > 0 ? (
+                        notifications.slice(0, 3).map((notification) => (
+                          <div
+                            key={notification.id}
+                            className="px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                            onClick={() => {
+                              setIsNotificationsViewOpen(false);
+                              router.push("/qualityDashboard/notificationPage");
+                            }}
+                          >
+                            <p className="text-sm text-gray-700 truncate">
+                              {notification.message}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Task: {notification.taskId}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-4 py-2">
+                          <p className="text-sm text-gray-500">
+                            No new notifications
+                          </p>
+                        </div>
+                      )}
+                      {notifications.length > 3 && (
+                        <div
+                          className="px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 cursor-pointer border-t border-gray-100"
+                          onClick={() => {
+                            setIsNotificationsViewOpen(false);
+                            router.push("/qualityDashboard/notificationPage");
+                          }}
+                        >
+                          View all notifications
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
               <button
@@ -289,13 +368,13 @@ export default function QualityDashboard() {
           </div>
         </div>
       </nav>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-white">Quality Dashboard</h1>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative">
         <p className="text-lg text-gray-200 mb-8">
-          Welcome to the Quality Dashboard. Create tasks, send notifications, and manage quality control.
+          Welcome to the Quality Dashboard. Create tasks, send notifications,
+          and manage quality control.
         </p>
+
+        {/* Floating action button */}
         <div className="fixed bottom-6 right-6">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -326,36 +405,98 @@ export default function QualityDashboard() {
             </div>
           )}
         </div>
+
+        {/* Dimmed main content when any popup is open */}
+        <div
+          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${
+            isTaskFormOpen || isNotificationFormOpen || isNotificationsViewOpen
+              ? "opacity-50 pointer-events-none"
+              : ""
+          }`}
+        >
+          <div className="bg-white/90 p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold text-gray-900">My Tasks</h2>
+            <p className="text-gray-600 mt-2">
+              View and manage your created tasks.
+            </p>
+            <button
+              onClick={() => router.push("/qualityDashboard/taskPage")}
+              className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
+            >
+              View Tasks
+            </button>
+          </div>
+          <div className="bg-white/90 p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Notifications
+            </h2>
+            <p className="text-gray-600 mt-2">Send and track notifications.</p>
+            <button
+              onClick={() => router.push("/qualityDashboard/notificationPage")}
+              className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
+            >
+              View Notifications
+            </button>
+          </div>
+          <div className="bg-white/90 p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold text-gray-900">Profile</h2>
+            <p className="text-gray-600 mt-2">
+              Update your personal and professional details.
+            </p>
+            <button className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300">
+              Edit Profile
+            </button>
+          </div>
+        </div>
+
+        {/* Task Form Popup */}
         {isTaskFormOpen && (
-          <div className="fixed inset-0 bg-gradient-to-br from-gray-800 via-blue-900 to-gray-700 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-4xl p-6">
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl w-full max-w-4xl p-6 shadow-xl">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-900">Create New Task</h2>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Create New Task
+                </h2>
                 <button
                   onClick={() => {
                     setIsTaskFormOpen(false);
                     setTaskFormData({
-                      partName: '',
-                      companyName: '',
-                      sapCode: '',
-                      description: '',
-                      location: '',
-                      status: 'pending',
-                      createdBy: 'quality',
+                      partName: "",
+                      companyName: "",
+                      sapCode: "",
+                      description: "",
+                      location: "",
+                      status: "pending",
+                      createdBy: "quality",
                     });
                     setErrors({});
                   }}
                   className="text-gray-600 hover:text-gray-800"
                 >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
               <form onSubmit={handleTaskSubmit} className="space-y-4">
                 <div className="flex flex-row flex-wrap gap-4">
                   <div className="flex flex-col flex-1 min-w-[200px]">
-                    <label htmlFor="partName" className="text-sm font-semibold text-gray-700">Part Name</label>
+                    <label
+                      htmlFor="partName"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Part Name
+                    </label>
                     <select
                       name="partName"
                       id="partName"
@@ -364,18 +505,29 @@ export default function QualityDashboard() {
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
                       disabled={partsLoading}
                     >
-                      <option value="" disabled>Select a part</option>
+                      <option value="" disabled>
+                        Select a part
+                      </option>
                       {partNames.map((name) => (
                         <option key={name} value={name}>
                           {name}
                         </option>
                       ))}
                     </select>
-                    {errors.partName && <p className="text-sm text-red-600">{errors.partName}</p>}
-                    {partsLoading && <p className="text-sm text-gray-600">Loading parts...</p>}
+                    {errors.partName && (
+                      <p className="text-sm text-red-600">{errors.partName}</p>
+                    )}
+                    {partsLoading && (
+                      <p className="text-sm text-gray-600">Loading parts...</p>
+                    )}
                   </div>
                   <div className="flex flex-col flex-1 min-w-[200px]">
-                    <label htmlFor="companyName" className="text-sm font-semibold text-gray-700">Company Name</label>
+                    <label
+                      htmlFor="companyName"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Company Name
+                    </label>
                     <input
                       type="text"
                       name="companyName"
@@ -385,10 +537,19 @@ export default function QualityDashboard() {
                       className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
                       placeholder="Company name will auto-populate"
                     />
-                    {errors.companyName && <p className="text-sm text-red-600">{errors.companyName}</p>}
+                    {errors.companyName && (
+                      <p className="text-sm text-red-600">
+                        {errors.companyName}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-col flex-1 min-w-[200px]">
-                    <label htmlFor="sapCode" className="text-sm font-semibold text-gray-700">SAP Code</label>
+                    <label
+                      htmlFor="sapCode"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      SAP Code
+                    </label>
                     <input
                       type="text"
                       name="sapCode"
@@ -398,48 +559,86 @@ export default function QualityDashboard() {
                       className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
                       placeholder="SAP code will auto-populate"
                     />
-                    {errors.sapCode && <p className="text-sm text-red-600">{errors.sapCode}</p>}
+                    {errors.sapCode && (
+                      <p className="text-sm text-red-600">{errors.sapCode}</p>
+                    )}
                   </div>
                   <div className="flex flex-col flex-1 min-w-[200px]">
-                    <label htmlFor="location" className="text-sm font-semibold text-gray-700">Location</label>
+                    <label
+                      htmlFor="location"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Location
+                    </label>
                     <input
                       type="text"
                       name="location"
                       id="location"
                       value={taskFormData.location}
-                      onChange={(e) => setTaskFormData({ ...taskFormData, location: e.target.value })}
+                      onChange={(e) =>
+                        setTaskFormData({
+                          ...taskFormData,
+                          location: e.target.value,
+                        })
+                      }
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
                       placeholder="Enter location"
                     />
-                    {errors.location && <p className="text-sm text-red-600">{errors.location}</p>}
+                    {errors.location && (
+                      <p className="text-sm text-red-600">{errors.location}</p>
+                    )}
                   </div>
                   <div className="flex flex-col flex-1 min-w-[200px]">
-                    <label htmlFor="status" className="text-sm font-semibold text-gray-700">Status</label>
+                    <label
+                      htmlFor="status"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Status
+                    </label>
                     <select
                       name="status"
                       id="status"
                       value={taskFormData.status}
-                      onChange={(e) => setTaskFormData({ ...taskFormData, status: e.target.value })}
+                      onChange={(e) =>
+                        setTaskFormData({
+                          ...taskFormData,
+                          status: e.target.value,
+                        })
+                      }
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
                     >
                       <option value="pending">Pending</option>
                       <option value="in_progress">In Progress</option>
                       <option value="completed">Completed</option>
                     </select>
-                    {errors.status && <p className="text-sm text-red-600">{errors.status}</p>}
+                    {errors.status && (
+                      <p className="text-sm text-red-600">{errors.status}</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <label htmlFor="description" className="text-sm font-semibold text-gray-700">Description</label>
+                  <label
+                    htmlFor="description"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    Description
+                  </label>
                   <textarea
                     name="description"
                     id="description"
                     value={taskFormData.description}
-                    onChange={(e) => setTaskFormData({ ...taskFormData, description: e.target.value })}
+                    onChange={(e) =>
+                      setTaskFormData({
+                        ...taskFormData,
+                        description: e.target.value,
+                      })
+                    }
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
                     placeholder="Enter task description"
                   />
-                  {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
+                  {errors.description && (
+                    <p className="text-sm text-red-600">{errors.description}</p>
+                  )}
                 </div>
                 <div className="flex justify-end space-x-3">
                   <button
@@ -447,13 +646,13 @@ export default function QualityDashboard() {
                     onClick={() => {
                       setIsTaskFormOpen(false);
                       setTaskFormData({
-                        partName: '',
-                        companyName: '',
-                        sapCode: '',
-                        description: '',
-                        location: '',
-                        status: 'pending',
-                        createdBy: 'quality',
+                        partName: "",
+                        companyName: "",
+                        sapCode: "",
+                        description: "",
+                        location: "",
+                        status: "pending",
+                        createdBy: "quality",
                       });
                       setErrors({});
                     }}
@@ -473,72 +672,125 @@ export default function QualityDashboard() {
             </div>
           </div>
         )}
+
+        {/* Notification Form Popup */}
         {isNotificationFormOpen && (
-          <div className="fixed inset-0 bg-gradient-to-br from-gray-800 via-blue-900 to-gray-700 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md p-6">
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-900">Send Notification</h2>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Send Notification
+                </h2>
                 <button
                   onClick={() => {
                     setIsNotificationFormOpen(false);
-                    setNotificationFormData({ message: '', recipients: [], taskId: '' });
+                    setNotificationFormData({
+                      message: "",
+                      recipients: [],
+                      taskId: "",
+                    });
                     setErrors({});
                   }}
                   className="text-gray-600 hover:text-gray-800"
                 >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
               <form onSubmit={handleNotificationSubmit} className="space-y-4">
                 <div className="flex flex-col space-y-1">
-                  <label htmlFor="taskId" className="text-sm font-semibold text-gray-700">Task ID</label>
+                  <label
+                    htmlFor="taskId"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    Task ID
+                  </label>
                   <select
                     name="taskId"
                     id="taskId"
                     value={notificationFormData.taskId}
-                    onChange={(e) => setNotificationFormData({ ...notificationFormData, taskId: e.target.value })}
+                    onChange={(e) =>
+                      setNotificationFormData({
+                        ...notificationFormData,
+                        taskId: e.target.value,
+                      })
+                    }
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
                     disabled={tasksLoading}
                   >
-                    <option value="" disabled>Select a task</option>
+                    <option value="" disabled>
+                      Select a task
+                    </option>
                     {tasks.map((task) => (
                       <option key={task.id} value={task.id}>
                         {task.id} - {task.part_name}
                       </option>
                     ))}
                   </select>
-                  {errors.taskId && <p className="text-sm text-red-600">{errors.taskId}</p>}
-                  {tasksLoading && <p className="text-sm text-gray-600">Loading tasks...</p>}
+                  {errors.taskId && (
+                    <p className="text-sm text-red-600">{errors.taskId}</p>
+                  )}
+                  {tasksLoading && (
+                    <p className="text-sm text-gray-600">Loading tasks...</p>
+                  )}
                 </div>
                 <div className="flex flex-col space-y-1">
-                  <label htmlFor="message" className="text-sm font-semibold text-gray-700">Message</label>
+                  <label
+                    htmlFor="message"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    Message
+                  </label>
                   <textarea
                     name="message"
                     id="message"
                     value={notificationFormData.message}
-                    onChange={(e) => setNotificationFormData({ ...notificationFormData, message: e.target.value })}
+                    onChange={(e) =>
+                      setNotificationFormData({
+                        ...notificationFormData,
+                        message: e.target.value,
+                      })
+                    }
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200"
                     placeholder="Enter notification message"
                   />
-                  {errors.message && <p className="text-sm text-red-600">{errors.message}</p>}
+                  {errors.message && (
+                    <p className="text-sm text-red-600">{errors.message}</p>
+                  )}
                 </div>
                 <div className="flex flex-col space-y-1">
-                  <label className="text-sm font-semibold text-gray-700">Recipients</label>
+                  <label className="text-sm font-semibold text-gray-700">
+                    Recipients
+                  </label>
                   <div className="flex space-x-4">
                     <label className="flex items-center">
                       <input
                         type="checkbox"
                         value="employee"
-                        checked={notificationFormData.recipients.includes('employee')}
+                        checked={notificationFormData.recipients.includes(
+                          "employee"
+                        )}
                         onChange={(e) => {
                           const value = e.target.value;
                           setNotificationFormData({
                             ...notificationFormData,
-                            recipients: notificationFormData.recipients.includes(value)
-                              ? notificationFormData.recipients.filter((r) => r !== value)
-                              : [...notificationFormData.recipients, value],
+                            recipients:
+                              notificationFormData.recipients.includes(value)
+                                ? notificationFormData.recipients.filter(
+                                    (r) => r !== value
+                                  )
+                                : [...notificationFormData.recipients, value],
                           });
                         }}
                         className="mr-2"
@@ -549,14 +801,19 @@ export default function QualityDashboard() {
                       <input
                         type="checkbox"
                         value="hod"
-                        checked={notificationFormData.recipients.includes('hod')}
+                        checked={notificationFormData.recipients.includes(
+                          "hod"
+                        )}
                         onChange={(e) => {
                           const value = e.target.value;
                           setNotificationFormData({
                             ...notificationFormData,
-                            recipients: notificationFormData.recipients.includes(value)
-                              ? notificationFormData.recipients.filter((r) => r !== value)
-                              : [...notificationFormData.recipients, value],
+                            recipients:
+                              notificationFormData.recipients.includes(value)
+                                ? notificationFormData.recipients.filter(
+                                    (r) => r !== value
+                                  )
+                                : [...notificationFormData.recipients, value],
                           });
                         }}
                         className="mr-2"
@@ -564,14 +821,20 @@ export default function QualityDashboard() {
                       HOD
                     </label>
                   </div>
-                  {errors.recipients && <p className="text-sm text-red-600">{errors.recipients}</p>}
+                  {errors.recipients && (
+                    <p className="text-sm text-red-600">{errors.recipients}</p>
+                  )}
                 </div>
                 <div className="flex justify-end space-x-3">
                   <button
                     type="button"
                     onClick={() => {
                       setIsNotificationFormOpen(false);
-                      setNotificationFormData({ message: '', recipients: [], taskId: '' });
+                      setNotificationFormData({
+                        message: "",
+                        recipients: [],
+                        taskId: "",
+                      });
                       setErrors({});
                     }}
                     className="py-2 px-4 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition duration-300"
@@ -590,32 +853,6 @@ export default function QualityDashboard() {
             </div>
           </div>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white/90 p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-900">My Tasks</h2>
-            <p className="text-gray-600 mt-2">View and manage your created tasks.</p>
-            <button
-              onClick={() => router.push('/taskPage')}
-              className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
-            >
-              View Tasks
-            </button>
-          </div>
-          <div className="bg-white/90 p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-900">Notifications</h2>
-            <p className="text-gray-600 mt-2">Send and track notifications.</p>
-            <button className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300">
-              View Notifications
-            </button>
-          </div>
-          <div className="bg-white/90 p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-900">Profile</h2>
-            <p className="text-gray-600 mt-2">Update your personal and professional details.</p>
-            <button className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300">
-              Edit Profile
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

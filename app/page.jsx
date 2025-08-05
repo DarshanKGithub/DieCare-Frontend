@@ -68,7 +68,7 @@ export default function LoginPage() {
         allowOutsideClick: false,
         allowEscapeKey: false,
         showConfirmButton: false,
-        timer: 5000, // Show for 5 seconds
+        timer: 2000, // Show for 5 seconds
         timerProgressBar: true,
       });
       // Redirect after alert closes
