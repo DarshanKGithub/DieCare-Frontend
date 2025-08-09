@@ -426,18 +426,7 @@ export default function QualityDashboard() {
               View Tasks
             </button>
           </div>
-          <div className="bg-white/90 p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Notifications
-            </h2>
-            <p className="text-gray-600 mt-2">Send and track notifications.</p>
-            <button
-              onClick={() => router.push("/qualityDashboard/notificationPage")}
-              className="mt-4 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition duration-300"
-            >
-              View Notifications
-            </button>
-          </div>
+         
           <div className="bg-white/90 p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold text-gray-900">Profile</h2>
             <p className="text-gray-600 mt-2">
