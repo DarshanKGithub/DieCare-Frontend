@@ -4,7 +4,7 @@ import { apiService } from '../../services/api';
 import { Input, Select, Button, Alert } from '../ui';
 
 export const RegistrationForm = ({ onSwitchToLogin }) => {
-   const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState({
         name: '', email: '', phone_number: '', role: 'Employee',
         designation: '', password: '', confirm_password: ''
     });
@@ -13,17 +13,48 @@ export const RegistrationForm = ({ onSwitchToLogin }) => {
 
     const handleInputChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setNotification({ type: '', message: '' });
-
-        if (formData.password !== formData.confirm_password) {
-            setNotification({ type: 'error', message: 'Passwords do not match' });
-            setLoading(false);
-            return;
+    const validateForm = () => {
+        const { name, email, phone_number, password, confirm_password } = formData;
+        
+        if (!name.trim()) {
+            setNotification({ type: 'error', message: 'Full Name is required.' });
+            return false;
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setNotification({ type: 'error', message: 'Please enter a valid email address.' });
+            return false;
         }
 
+        // Validate phone number only if it's not empty
+        if (phone_number && !/^\+91[1-9]\d{9}$/.test(phone_number)) {
+            setNotification({ type: 'error', message: 'Phone number must be in the format +91XXXXXXXXXX.' });
+            return false;
+        }
+
+        if (password.length < 6) {
+            setNotification({ type: 'error', message: 'Password must be at least 6 characters long.' });
+            return false;
+        }
+
+        if (password !== confirm_password) {
+            setNotification({ type: 'error', message: 'Passwords do not match.' });
+            return false;
+        }
+        
+        return true;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setNotification({ type: '', message: '' });
+
+        if (!validateForm()) {
+            return; // Stop submission if validation fails
+        }
+
+        setLoading(true);
         const response = await apiService.register(formData);
         setLoading(false);
         setNotification({ type: response.success ? 'success' : 'error', message: response.message });
@@ -34,7 +65,7 @@ export const RegistrationForm = ({ onSwitchToLogin }) => {
     };
 
     return (
-        <div className="w-[800px] p-8 space-y-0 bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700">
+        <div className="w-full max-w-2xl p-8 space-y-6 bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700">
             <div className="text-center">
                 <User size={48} className="mx-auto text-cyan-400" />
                 <h1 className="text-3xl font-bold text-white mt-4">Create Account</h1>
@@ -44,7 +75,7 @@ export const RegistrationForm = ({ onSwitchToLogin }) => {
             <form className="space-y-5" onSubmit={handleSubmit}>
                 <Input icon={<User size={20} />} type="text" name="name" placeholder="Full Name" required value={formData.name} onChange={handleInputChange} />
                 <Input icon={<Mail size={20} />} type="email" name="email" placeholder="Email Address" required value={formData.email} onChange={handleInputChange} />
-                <Input icon={<Phone size={20} />} type="tel" name="phone_number" placeholder="Phone Number (Optional)" value={formData.phone_number} onChange={handleInputChange} />
+                <Input icon={<Phone size={20} />} type="tel" name="phone_number" placeholder="Phone Number (e.g., +919876543210)" value={formData.phone_number} onChange={handleInputChange} />
                 <Select icon={<UserCheck size={20} />} name="role" required value={formData.role} onChange={handleInputChange}>
                     <option value="Employee">Employee</option>
                     <option value="HOD">HOD</option>
@@ -56,7 +87,7 @@ export const RegistrationForm = ({ onSwitchToLogin }) => {
                 <Input icon={<KeyRound size={20} />} type="password" name="confirm_password" placeholder="Confirm Password" required minLength="6" value={formData.confirm_password} onChange={handleInputChange} />
                 <Button type="submit" isLoading={loading}>Register</Button>
             </form>
-            <div className="text-center">
+            <div className="text-center mt-6">
                 <button onClick={onSwitchToLogin} className="text-sm text-cyan-400 hover:text-cyan-300 hover:underline">
                     Already have an account? Login
                 </button>
@@ -64,3 +95,4 @@ export const RegistrationForm = ({ onSwitchToLogin }) => {
         </div>
     );
 };
+

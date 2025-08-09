@@ -16,25 +16,46 @@ export const LoginForm = ({ onSwitchToRegister }) => {
     const [notification, setNotification] = useState({ type: '', message: '' });
 
     const handleInputChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    
+
+    const validateForm = () => {
+        const { email, password } = formData;
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email.trim() || !emailRegex.test(email)) {
+            setNotification({ type: 'error', message: 'Please enter a valid email address.' });
+            return false;
+        }
+
+        if (!password) {
+            setNotification({ type: 'error', message: 'Password is required.' });
+            return false;
+        }
+        
+        return true;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
         setNotification({ type: '', message: '' });
+
+        if (!validateForm()) {
+            return; // Stop submission if validation fails
+        }
         
+        setLoading(true);
         const response = await apiService.login(formData.email, formData.password);
-        
         setLoading(false);
+        
         setNotification({ type: response.success ? 'success' : 'error', message: response.message });
 
         if (response.success) {
             console.log("Logged in successfully!");
+            // Here you would typically save the token and redirect the user
         }
     };
 
     return (
-        <div className="w-[500px] max-w-md p-8 space-y-6 bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700">
+        <div className="w-full max-w-md p-8 space-y-6 bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700">
             <div className="text-center">
                 <Shield size={48} className="mx-auto text-cyan-400" />
                 <h1 className="text-3xl font-bold text-white mt-4">Secure Login</h1>
