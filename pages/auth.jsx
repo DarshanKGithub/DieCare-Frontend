@@ -1,20 +1,13 @@
-'use client'; 
-
 // ============================================================================
-// --- Main Page Component ---
-// FILE: /app/login/page.jsx
+// --- Main App Component (The Page) ---
+// In a real Next.js app, this would be your page file: /pages/auth.js
 // ============================================================================
-
-import React, { useState } from 'react';
-// Import the components from their new file locations
-import { LoginForm } from '../components/auth/LoginForm';
-import { RegistrationForm } from '../components/auth/RegistrationForm';
-
-export default function LoginPage() {
+export default function App() {
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
 
   return (
     <div className="min-h-screen w-full bg-gray-900 text-white flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
+        {/* Background decorative elements */}
         <div className="absolute top-0 left-0 -translate-x-1/3 -translate-y-1/3 w-96 h-96 bg-cyan-800/30 rounded-full filter blur-3xl opacity-50 animate-pulse"></div>
         <div className="absolute bottom-0 right-0 translate-x-1/3 translate-y-1/3 w-96 h-96 bg-indigo-800/30 rounded-full filter blur-3xl opacity-50 animate-pulse animation-delay-4000"></div>
         
