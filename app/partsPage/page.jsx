@@ -89,21 +89,17 @@ export default function PartsPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial Number</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Part Name</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company Name</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SAP Code</th>
-                    {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th> */}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {parts.map((part) => (
                     <tr key={part.serial_number}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{part.serial_number}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{part.part_name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{part.company_name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{part.sap_code}</td>
-                      {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{part.location}</td> */}
                     </tr>
                   ))}
                 </tbody>
