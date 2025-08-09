@@ -65,7 +65,7 @@ export const RegistrationForm = ({ onSwitchToLogin }) => {
     };
 
     return (
-        <div className="w-full max-w-2xl p-8 space-y-6 bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700">
+        <div className="w-[500px] max-w-xl p-8 space-y-6 bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700">
             <div className="text-center">
                 <User size={48} className="mx-auto text-cyan-400" />
                 <h1 className="text-3xl font-bold text-white mt-4">Create Account</h1>
