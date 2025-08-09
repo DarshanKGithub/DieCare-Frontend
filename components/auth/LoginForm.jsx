@@ -14,24 +14,25 @@ export const LoginForm = ({ onSwitchToRegister }) => {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
     const [notification, setNotification] = useState({ type: '', message: '' });
+    const [errors, setErrors] = useState({});
 
     const handleInputChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
     const validateForm = () => {
+        const newErrors = {};
         const { email, password } = formData;
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!email.trim() || !emailRegex.test(email)) {
-            setNotification({ type: 'error', message: 'Please enter a valid email address.' });
-            return false;
+            newErrors.email = 'Please enter a valid email address.';
         }
 
         if (!password) {
-            setNotification({ type: 'error', message: 'Password is required.' });
-            return false;
+            newErrors.password = 'Password is required.';
         }
         
-        return true;
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e) => {
@@ -62,12 +63,18 @@ export const LoginForm = ({ onSwitchToRegister }) => {
                 <p className="text-gray-400">Access your Industrial ERP Dashboard</p>
             </div>
             <Alert message={notification.message} type={notification.type} />
-            <form className="space-y-6" onSubmit={handleSubmit}>
-                <Input icon={<Mail size={20} />} type="email" name="email" placeholder="Email Address" required value={formData.email} onChange={handleInputChange} />
-                <Input icon={<KeyRound size={20} />} type="password" name="password" placeholder="Password" required value={formData.password} onChange={handleInputChange} />
+            <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+                <div>
+                    <Input icon={<Mail size={20} />} type="email" name="email" placeholder="Email Address" required value={formData.email} onChange={handleInputChange} />
+                    {errors.email && <p className="text-red-400 text-sm mt-1 ml-2">{errors.email}</p>}
+                </div>
+                <div>
+                    <Input icon={<KeyRound size={20} />} type="password" name="password" placeholder="Password" required value={formData.password} onChange={handleInputChange} />
+                    {errors.password && <p className="text-red-400 text-sm mt-1 ml-2">{errors.password}</p>}
+                </div>
                 <Button type="submit" isLoading={loading}>Login</Button>
             </form>
-            <div className="text-center">
+            <div className="text-center pt-4">
                 <button onClick={onSwitchToRegister} className="text-sm text-cyan-400 hover:text-cyan-300 hover:underline">
                     Don't have an account? Sign Up
                 </button>
