@@ -1,31 +1,62 @@
 "use client";
 
 import { LogOut } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
-
-export const Navbar = () => {
+export default function Navbar() {
     const router = useRouter();
+    const pathname = usePathname(); // Get current route
     const [user, setUser] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // This effect runs on the client side after the component mounts
+        const protectedRoutes = [
+            '/admin-dashboard',
+            '/hod-dashboard',
+            '/quality-dashboard',
+            '/employee-dashboard',
+            '/dashboard',
+        ];
+
         const userData = localStorage.getItem('user');
+        console.log('Navbar userData:', userData); // Debug localStorage
+
         if (userData) {
-            setUser(JSON.parse(userData));
-        } else {
-            // If no user data, redirect to login
-            router.push('/login');
+            try {
+                const parsedUser = JSON.parse(userData);
+                if (parsedUser.name && parsedUser.role) {
+                    setUser(parsedUser);
+                } else {
+                    console.error('Invalid user data in localStorage:', parsedUser);
+                    localStorage.removeItem('user');
+                    if (!protectedRoutes.includes(pathname)) {
+                        router.push('/');
+                    }
+                }
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+                localStorage.removeItem('user');
+                if (!protectedRoutes.includes(pathname)) {
+                    router.push('/');
+                }
+            }
+        } else if (!protectedRoutes.includes(pathname)) {
+            router.push('/');
         }
-    }, [router]);
+
+        setIsLoading(false);
+    }, [router, pathname]);
 
     const handleLogout = () => {
-        // Clear user data from storage
         localStorage.removeItem('user');
         localStorage.removeItem('accessToken');
-        // Redirect to the login page
-        router.push('/login');
+        router.push('/');
     };
+
+    if (isLoading) {
+        return <div className="bg-gray-800/50 w-full p-4 text-white">Loading...</div>;
+    }
 
     return (
         <nav className="bg-gray-800/50 backdrop-blur-sm w-full p-4 shadow-lg flex justify-between items-center">
@@ -42,4 +73,4 @@ export const Navbar = () => {
             </div>
         </nav>
     );
-};
+}

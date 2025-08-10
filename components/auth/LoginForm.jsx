@@ -1,22 +1,17 @@
-'use client'; // Add this directive for Next.js App Router
+'use client';
 
 import React, { useState } from 'react';
 import { Shield, Mail, KeyRound } from 'lucide-react';
- import { apiService } from '../../services/api'; 
+import { apiService } from '../../services/api';
 import { Input, Button, Alert } from '../ui';
-import { useRouter } from 'next/navigation'; // Import useRouter for navigation
+import { useRouter } from 'next/navigation';
 
-// ============================================================================
-// --- Login Form Component ---
-// FILE: /components/auth/LoginForm.jsx
-// NOTE: Add 'export' to the component definition.
-// ============================================================================
 export const LoginForm = ({ onSwitchToRegister }) => {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
     const [notification, setNotification] = useState({ type: '', message: '' });
     const [errors, setErrors] = useState({});
-    const router = useRouter(); // Initialize the router
+    const router = useRouter();
 
     const handleInputChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
@@ -32,7 +27,7 @@ export const LoginForm = ({ onSwitchToRegister }) => {
         if (!password) {
             newErrors.password = 'Password is required.';
         }
-        
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -42,40 +37,49 @@ export const LoginForm = ({ onSwitchToRegister }) => {
         setNotification({ type: '', message: '' });
 
         if (!validateForm()) {
-            return; // Stop submission if validation fails
+            return;
         }
-        
+
         setLoading(true);
         const response = await apiService.login(formData.email, formData.password);
         setLoading(false);
-        
-        if (response.success) {
-            // On successful login, redirect based on role
-            setNotification({ type: 'success', message: 'Login successful! Redirecting...' });
-            
-            // Here you would typically save the token, e.g., in an HttpOnly cookie
-            console.log("Access Token:", response.accessToken);
 
-            setTimeout(() => {
-                switch (response.user.role) {
-                    case 'Admin':
-                        router.push('/admin-dashboard');
-                        break;
-                    case 'HOD':
-                        router.push('/hod-dashboard');
-                        break;
-                    case 'Quality':
-                        router.push('/quality-dashboard');
-                        break;
-                    case 'Employee':
-                        router.push('/employee-dashboard');
-                        break;
-                    default:
-                        // Fallback for any other roles or if role is not defined
-                        router.push('/dashboard');
-                        break;
-                }
-            }, 1000); // Delay for user to see success message
+        console.log('API Response:', response); // Debug API response
+
+        if (response.success) {
+            // Validate user data
+            if (!response.user?.name || !response.user?.role) {
+                setNotification({ type: 'error', message: 'Invalid user data from server.' });
+                return;
+            }
+
+            // Store user data and token in localStorage
+            localStorage.setItem('user', JSON.stringify({
+                name: response.user.name,
+                role: response.user.role,
+            }));
+            localStorage.setItem('accessToken', response.accessToken);
+
+            setNotification({ type: 'success', message: 'Login successful! Redirecting...' });
+
+            // Redirect immediately
+            switch (response.user.role) {
+                case 'Admin':
+                    router.push('/admin-dashboard');
+                    break;
+                case 'HOD':
+                    router.push('/hod-dashboard');
+                    break;
+                case 'Quality':
+                    router.push('/quality-dashboard');
+                    break;
+                case 'Employee':
+                    router.push('/employee-dashboard');
+                    break;
+                default:
+                    router.push('/dashboard');
+                    break;
+            }
         } else {
             setNotification({ type: 'error', message: response.message });
         }
