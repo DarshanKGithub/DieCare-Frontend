@@ -22,7 +22,7 @@ export default function AdminDashboardPage() {
         
         <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
             <h2 className="text-2xl font-bold tracking-wider">MECHANICAL ERP</h2>
-            <p className="text-sm text-gray-400">Project Sentinel</p>
+            <p className="text-sm text-gray-400">Project Sentinel Hello</p>
         </header>
 
         <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
