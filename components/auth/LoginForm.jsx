@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Shield, Mail, KeyRound } from 'lucide-react';
  import { apiService } from '../../services/api'; 
 import { Input, Button, Alert } from '../ui';
+import { useRouter } from 'next/navigation'; // Import useRouter for navigation
 
 // ============================================================================
 // --- Login Form Component ---
@@ -15,6 +16,7 @@ export const LoginForm = ({ onSwitchToRegister }) => {
     const [loading, setLoading] = useState(false);
     const [notification, setNotification] = useState({ type: '', message: '' });
     const [errors, setErrors] = useState({});
+    const router = useRouter(); // Initialize the router
 
     const handleInputChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
@@ -47,11 +49,35 @@ export const LoginForm = ({ onSwitchToRegister }) => {
         const response = await apiService.login(formData.email, formData.password);
         setLoading(false);
         
-        setNotification({ type: response.success ? 'success' : 'error', message: response.message });
-
         if (response.success) {
-            console.log("Logged in successfully!");
-            // Here you would typically save the token and redirect the user
+            // On successful login, redirect based on role
+            setNotification({ type: 'success', message: 'Login successful! Redirecting...' });
+            
+            // Here you would typically save the token, e.g., in an HttpOnly cookie
+            console.log("Access Token:", response.accessToken);
+
+            setTimeout(() => {
+                switch (response.user.role) {
+                    case 'Admin':
+                        router.push('/admin-dashboard');
+                        break;
+                    case 'HOD':
+                        router.push('/hod-dashboard');
+                        break;
+                    case 'Quality':
+                        router.push('/quality-dashboard');
+                        break;
+                    case 'Employee':
+                        router.push('/employee-dashboard');
+                        break;
+                    default:
+                        // Fallback for any other roles or if role is not defined
+                        router.push('/dashboard');
+                        break;
+                }
+            }, 1000); // Delay for user to see success message
+        } else {
+            setNotification({ type: 'error', message: response.message });
         }
     };
 
