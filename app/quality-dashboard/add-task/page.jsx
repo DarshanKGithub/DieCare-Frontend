@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, User, Building, Hash, MapPin, Upload } from 'lucide-react';
 import { Input, Button } from '../../../components/ui.jsx';
 import { apiService } from '../../../services/api'; // Make sure this path is correct
-
+import router from 'next/router'; // Import Next.js router for navigation
 export default function AddTaskPage() {
     const [formData, setFormData] = useState({
         partName: '',
@@ -21,7 +21,7 @@ export default function AddTaskPage() {
     const [parts, setParts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-
+    const [isSubmitting, setIsSubmitting] = useState(false);
     // 1. Fetch parts data when the component mounts
     useEffect(() => {
         const fetchParts = async () => {
@@ -84,10 +84,44 @@ export default function AddTaskPage() {
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log({ ...formData, images });
-        alert('Task data logged to console.');
+        setError(null); // Clear previous errors
+        setIsSubmitting(true);
+
+        // --- Create a FormData object ---
+        // This is necessary for sending files along with text data.
+        const taskData = new FormData();
+        taskData.append('sapCode', formData.sapCode);
+        taskData.append('location', formData.location);
+        taskData.append('comments', formData.comments);
+        
+        // Append all selected image files
+        images.forEach(image => {
+            taskData.append('images', image);
+        });
+
+        try {
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                throw new Error("Authentication token not found.");
+            }
+
+            const result = await apiService.addTask(taskData, token);
+
+            if (result.success) {
+                alert('Task submitted successfully!');
+                // Optional: redirect the user or clear the form
+                router.push('/quality-dashboard'); 
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (err) {
+            setError(err.message);
+            console.error('Submit task error:', err);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -165,9 +199,9 @@ export default function AddTaskPage() {
                                     onChange={handleInputChange}
                                 />
                             </div>
-                            
+                            {error && <p className="text-red-500 bg-red-900/20 p-3 rounded-md mb-4">{error}</p>}
                             <div className="pt-4">
-                                <Button type="submit">
+                                <Button type="submit" disabled={isSubmitting} >
                                     Submit Task
                                 </Button>
                             </div>

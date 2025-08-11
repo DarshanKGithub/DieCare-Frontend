@@ -272,4 +272,62 @@ export const apiService = {
       return { success: false, message: error.message };
     }
   },
+
+   //================================================================//
+  //                      Tasks API METHODS                         //
+  //================================================================//
+
+   /**
+   * Creates a new quality task.
+   * @param {FormData} formData - The form data, including text fields and images.
+   * @param {string} token - JWT access token.
+   * @returns {Promise<object>} An object with { success, message, task? }.
+   */
+  addTask: async (formData, token) => {
+    const API_URL = `${API_BASE_URL}/api/tasks`;
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          // 'Content-Type' is NOT set, the browser does it automatically for FormData
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+      }
+      return { success: true, message: data.message, task: data.task };
+    } catch (error) {
+      console.error('Add Task API Error:', error);
+      return { success: false, message: error.message };
+    }
+  },
+
+   /**
+   * Fetches all quality tasks.
+   * @param {string} token - JWT access token.
+   * @returns {Promise<object>} An object with { success, tasks? }.
+   */
+  getAllTasks: async (token) => {
+    const API_URL = `${API_BASE_URL}/api/tasks`;
+    try {
+      const response = await fetch(API_URL, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch tasks.');
+      }
+      return { success: true, tasks: data.tasks };
+    } catch (error) {
+      console.error('Get All Tasks API Error:', error);
+      return { success: false, message: error.message };
+    }
+  },
 };
