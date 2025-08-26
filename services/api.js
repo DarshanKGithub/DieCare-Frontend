@@ -27,28 +27,31 @@ export const apiService = {
   },
 
   /**
-   * Registers a new user by calling the backend API.
-   * @param {object} userData - The user's registration data.
-   * @returns {Promise<object>} An object with { success, message, user? }.
-   */
-  register: async (userData) => {
-    const API_URL = `${API_BASE_URL}/api/register`;
-    try {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
-      }
-      return { success: true, message: data.message, user: data.user };
-    } catch (error) {
-      console.error('Registration API Error:', error);
-      return { success: false, message: error.message };
+ * Registers a new user by calling the backend API.
+ * @param {object} userData - The user's registration data.
+ * @returns {Promise<object>} An object with { success, message, user? }.
+ */
+register: async (userData) => {
+  const API_URL = `${API_BASE_URL}/api/register`;
+  try {
+    // Debug: Log the payload being sent
+    console.log("Register API Payload:", userData);
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || `HTTP error! status: ${response.status}`);
     }
-  },
+    return { success: true, message: data.message, user: data.user };
+  } catch (error) {
+    console.error("Registration API Error:", error);
+    return { success: false, message: error.message };
+  }
+},
 
   /**
    * Fetches all users (Admin only).

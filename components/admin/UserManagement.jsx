@@ -83,7 +83,7 @@ export const UserManagement = () => {
                 <h2 className="text-2xl font-bold text-white">User Management</h2>
                 <div className="flex items-center gap-4">
                     <div className="flex bg-gray-700 rounded-lg p-1">
-                        {['All', 'HOD', 'Quality', 'Employee'].map(role => (
+                        {['All', 'HOD', 'Quality', 'Employee','PDC'].map(role => (
                             <button
                                 key={role}
                                 onClick={() => setFilter(role)}
@@ -115,7 +115,7 @@ export const UserManagement = () => {
                             <tr key={user.id} className="border-b border-gray-700 hover:bg-gray-700/50">
                                 <td className="p-4">{user.name}</td>
                                 <td className="p-4">{user.email}</td>
-                                <td className="p-4"><span className={`px-2 py-1 text-xs rounded-full ${user.role === 'HOD' ? 'bg-purple-600' : user.role === 'Quality' ? 'bg-blue-600' : 'bg-green-600'}`}>{user.role}</span></td>
+                                <td className="p-4"><span className={`px-2 py-1 text-xs rounded-full ${user.role === 'HOD' ? 'bg-purple-600' : user.role === 'Quality' ? 'bg-blue-600' : 'bg-green-600' ? 'bg-amber-400' : user.role === 'PDC'} `}>{user.role}</span></td>
                                 <td className="p-4">{user.designation || 'N/A'}</td>
                                 <td className="p-4 flex gap-2">
                                     <button onClick={() => handleEditUser(user)} className="text-gray-400 hover:text-cyan-400"><Edit size={18} /></button>

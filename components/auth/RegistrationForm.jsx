@@ -88,6 +88,7 @@ export const RegistrationForm = ({ onSwitchToLogin }) => {
                         <option value="HOD">HOD</option>
                         <option value="Quality">Quality</option>
                         <option value="Admin">Admin</option>
+                        <option value="PDC"></option>
                     </Select>
                 </div>
                 <div>
