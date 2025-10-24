@@ -1,114 +1,126 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Shield, Mail, KeyRound } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { Input, Button, Alert } from '../ui';
-import { useRouter } from 'next/navigation';
 
 export const LoginForm = ({ onSwitchToRegister }) => {
-    const [formData, setFormData] = useState({ email: '', password: '' });
-    const [loading, setLoading] = useState(false);
-    const [notification, setNotification] = useState({ type: '', message: '' });
-    const [errors, setErrors] = useState({});
-    const router = useRouter();
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState({ type: '', message: '' });
+  const [errors, setErrors] = useState({});
+  const router = useRouter();
 
-    const handleInputChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleInputChange = (e) => setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-    const validateForm = () => {
-        const newErrors = {};
-        const { email, password } = formData;
+  const validateForm = () => {
+    const newErrors = {};
+    const { email, password } = formData;
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!email.trim() || !emailRegex.test(email)) {
-            newErrors.email = 'Please enter a valid email address.';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim() || !emailRegex.test(email)) {
+      newErrors.email = 'Please enter a valid email address.';
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required.';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setNotification({ type: '', message: '' });
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await apiService.login(formData.email, formData.password);
+
+      console.log('API Response:', response); // Debug API response
+
+      if (response.success) {
+        // Validate user data
+        if (!response.user?.name || !response.user?.role) {
+          setNotification({ type: 'error', message: 'Invalid user data from server.' });
+          return;
         }
 
-        if (!password) {
-            newErrors.password = 'Password is required.';
+        // Store user data and token in localStorage
+        localStorage.setItem('user', JSON.stringify({
+          name: response.user.name,
+          role: response.user.role,
+          email: response.user.email, // Include email for AuthContext
+        }));
+        localStorage.setItem('accessToken', response.accessToken);
+
+        setNotification({ type: 'success', message: 'Login successful! Redirecting...' });
+
+        // Redirect based on role
+        switch (response.user.role) {
+          case 'Admin':
+            router.push('/admin-dashboard');
+            break;
+          case 'HOD':
+            router.push('/hod-dashboard');
+            break;
+          case 'Quality':
+            router.push('/quality-dashboard');
+            break;
+          case 'Employee':
+            router.push('/employee-dashboard');
+            break;
+          case 'PDC':
+            router.push('/pdc-dashboard');
+            break;
+          default:
+            router.push('/dashboard');
+            break;
         }
+      } else {
+        setNotification({ type: 'error', message: response.error || response.message || 'Login failed' });
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setNotification({ type: 'error', message: err.message || 'An error occurred during login' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setNotification({ type: '', message: '' });
-
-        if (!validateForm()) {
-            return;
-        }
-
-        setLoading(true);
-        const response = await apiService.login(formData.email, formData.password);
-        setLoading(false);
-
-        console.log('API Response:', response); // Debug API response
-
-        if (response.success) {
-            // Validate user data
-            if (!response.user?.name || !response.user?.role) {
-                setNotification({ type: 'error', message: 'Invalid user data from server.' });
-                return;
-            }
-
-            // Store user data and token in localStorage
-            localStorage.setItem('user', JSON.stringify({
-                name: response.user.name,
-                role: response.user.role,
-            }));
-            localStorage.setItem('accessToken', response.accessToken);
-
-            setNotification({ type: 'success', message: 'Login successful! Redirecting...' });
-
-            // Redirect immediately
-            switch (response.user.role) {
-                case 'Admin':
-                    router.push('/admin-dashboard');
-                    break;
-                case 'HOD':
-                    router.push('/hod-dashboard');
-                    break;
-                case 'Quality':
-                    router.push('/quality-dashboard');
-                    break;
-                case 'Employee':
-                    router.push('/employee-dashboard');
-                    break;
-                default:
-                    router.push('/dashboard');
-                    break;
-            }
-        } else {
-            setNotification({ type: 'error', message: response.message });
-        }
-    };
-
-    return (
-        <div className="w-[500px] max-w-md p-8 space-y-6 bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700">
-            <div className="text-center">
-                <Shield size={48} className="mx-auto text-cyan-400" />
-                <h1 className="text-3xl font-bold text-white mt-4">Secure Login</h1>
-                <p className="text-gray-400">Access your Industrial ERP Dashboard</p>
-            </div>
-            <Alert message={notification.message} type={notification.type} />
-            <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-                <div>
-                    <Input icon={<Mail size={20} />} type="email" name="email" placeholder="Email Address" required value={formData.email} onChange={handleInputChange} />
-                    {errors.email && <p className="text-red-400 text-sm mt-1 ml-2">{errors.email}</p>}
-                </div>
-                <div>
-                    <Input icon={<KeyRound size={20} />} type="password" name="password" placeholder="Password" required value={formData.password} onChange={handleInputChange} />
-                    {errors.password && <p className="text-red-400 text-sm mt-1 ml-2">{errors.password}</p>}
-                </div>
-                <Button type="submit" isLoading={loading}>Login</Button>
-            </form>
-            <div className="text-center pt-4">
-                <button onClick={onSwitchToRegister} className="text-sm text-cyan-400 hover:text-cyan-300 hover:underline">
-                    Don't have an account? Sign Up
-                </button>
-            </div>
+  return (
+    <div className="w-[500px] max-w-md p-8 space-y-6 bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700">
+      <div className="text-center">
+        <Shield size={48} className="mx-auto text-cyan-400" />
+        <h1 className="text-3xl font-bold text-white mt-4">Secure Login</h1>
+        <p className="text-gray-400">Access your Industrial ERP Dashboard</p>
+      </div>
+      {notification.message && (
+        <Alert message={notification.message} type={notification.type} onDismiss={() => setNotification({ type: '', message: '' })} />
+      )}
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+        <div>
+          <Input icon={<Mail size={20} />} type="email" name="email" placeholder="Email Address" required value={formData.email} onChange={handleInputChange} />
+          {errors.email && <p className="text-red-400 text-sm mt-1 ml-2">{errors.email}</p>}
         </div>
-    );
+        <div>
+          <Input icon={<KeyRound size={20} />} type="password" name="password" placeholder="Password" required value={formData.password} onChange={handleInputChange} />
+          {errors.password && <p className="text-red-400 text-sm mt-1 ml-2">{errors.password}</p>}
+        </div>
+        <Button type="submit" isLoading={loading}>Login</Button>
+      </form>
+      <div className="text-center pt-4">
+        <button onClick={onSwitchToRegister} className="text-sm text-cyan-400 hover:text-cyan-300 hover:underline">
+          Don't have an account? Sign Up
+        </button>
+      </div>
+    </div>
+  );
 };

@@ -2,7 +2,7 @@
 
 import Navbar from '@/components/Navbar';
 
-export default function HodDashboard() {
+export default function PdcDashboard() {
   return (
     <div className="min-h-screen w-full bg-gray-900 text-white flex flex-col font-sans relative overflow-hidden">
       <Navbar />
@@ -13,7 +13,7 @@ export default function HodDashboard() {
         <p className="text-sm text-gray-400">Project Sentinel</p>
       </header>
       <main className="flex-1 flex items-center justify-center p-4">
-        <h1 className="text-xl font-semibold">HOD Dashboard</h1>
+        <h1 className="text-xl font-semibold">PDC Dashboard</h1>
       </main>
       <footer className="absolute bottom-6 left-8 text-gray-500 text-sm">
         © {new Date().getFullYear()} Mechanical Industrial Solutions. All rights reserved.

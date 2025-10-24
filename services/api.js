@@ -7,22 +7,24 @@ export const apiService = {
    * @param {string} password - The user's password.
    * @returns {Promise<object>} An object with { success, message, accessToken?, user? }.
    */
-  login: async (email, password) => {
-    const API_URL = `${API_BASE_URL}/api/login`;
+ async login(email, password) {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        return { success: false, message: `Server returned non-JSON response: ${text}` };
       }
-      return { success: true, message: data.message, accessToken: data.accessToken, user: data.user };
+
+      const data = await response.json();
+      return { success: response.ok, ...data };
     } catch (error) {
-      console.error('Login API Error:', error);
-      return { success: false, message: error.message };
+      return { success: false, message: error.message || 'Network error' };
     }
   },
 
@@ -332,5 +334,26 @@ register: async (userData) => {
       console.error('Get All Tasks API Error:', error);
       return { success: false, message: error.message };
     }
+  },
+
+   getNotifications: async (token) => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.json();
+  },
+  markNotificationAsRead: async (notificationId, token) => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/${notificationId}/read`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.json();
+  },
+  clearNotifications: async (token) => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/clear`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.json();
   },
 };
